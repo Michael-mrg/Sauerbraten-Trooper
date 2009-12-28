@@ -815,6 +815,7 @@ namespace game
         return 0;
     }
 
+    // time HUD item, thanks to WahnFred
     VAR(showtimeleft, 0, 1, 1);
 
     void rendertimeleft(int w, int h, int fonth)
@@ -964,6 +965,7 @@ namespace game
             return false;
         }
 
+        // TODO: Make this a VARP
         int color = (np == attr[3]) ? 0xFF4444 : ((float)np/attr[3] > 0.5) ? 0x8888FF : 0xFFFFDD;
         switch(i)
         {

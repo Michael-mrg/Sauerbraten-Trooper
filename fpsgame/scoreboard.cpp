@@ -429,9 +429,23 @@ namespace game
                 loopv(spectators) g.textf("%d", 0xFFFFDD, NULL, spectators[i]->clientnum);
                 g.poplist();
 
+                if(showpj)
+                {
+                    g.space(3);
+                    g.pushlist();
+                    g.text("pj", 0xFFFF80);
+                    loopv(spectators)
+                    {
+                        fpsent *o = spectators[i];
+                        if(o->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
+                        else g.textf("%d", 0xFFFFDD, NULL, o->plag);
+                    };
+                    g.poplist();
+                }
+        
                 if(showping)
                 {
-                    g.space(1);
+                    g.space(3);
                     g.pushlist();
                     g.text("ping", 0xFFFF80);
                     loopv(spectators)
