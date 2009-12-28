@@ -929,6 +929,8 @@ namespace game
         g->poplist();
     }
 
+    VARP(colorserverbrowser, 0, 1, 1);
+
     bool serverinfoentry(g3d_gui *g, int i, const char *name, int port, const char *sdesc, const char *map, int ping, const vector<int> &attr, int np)
     {
         if(ping < 0 || attr.empty() || attr[0]!=PROTOCOL_VERSION)
@@ -965,8 +967,15 @@ namespace game
             return false;
         }
 
-        // TODO: Make this a VARP
-        int color = (np == attr[3]) ? 0xFF4444 : ((float)np/attr[3] > 0.5) ? 0x8888FF : 0xFFFFDD;
+        int color = 0xFFFFDD;
+        if(colorserverbrowser)
+        {
+            if(np == attr[3])
+                color = 0xFF4444;
+            else if((float)np/attr[3] > 0.5)
+                color = 0x8888FF;
+        }
+
         switch(i)
         {
             case 0:
