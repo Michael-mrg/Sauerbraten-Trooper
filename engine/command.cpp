@@ -1021,8 +1021,18 @@ ICOMMAND(&~, "ii", (int *a, int *b), intret(*a & ~*b));
 ICOMMAND(|~, "ii", (int *a, int *b), intret(*a | ~*b));
 ICOMMAND(<<, "ii", (int *a, int *b), intret(*a << *b));
 ICOMMAND(>>, "ii", (int *a, int *b), intret(*a >> *b));
-ICOMMAND(&&, "ss", (char *a, char *b), intret(execute(a)!=0 && execute(b)!=0));
-ICOMMAND(||, "ss", (char *a, char *b), intret(execute(a)!=0 || execute(b)!=0));
+ICOMMAND(&&, "V", (char **args, int *numargs), 
+{
+    int val = 1;
+    loopi(*numargs) { val = execute(args[i]); if(!val) break; }
+    intret(val);
+});
+ICOMMAND(||, "V", (char **args, int *numargs),
+{
+    int val = 0;
+    loopi(*numargs) { val = execute(args[i]); if(val) break; } 
+    intret(val);
+});
 
 ICOMMAND(div, "ii", (int *a, int *b), intret(*b ? *a / *b : 0));
 ICOMMAND(mod, "ii", (int *a, int *b), intret(*b ? *a % *b : 0));
@@ -1069,7 +1079,7 @@ ICOMMAND(strreplace, "sss", (char *s, char *o, char *n), commandret = strreplace
 #ifndef STANDALONE
 struct sleepcmd
 {
-    int millis;
+    int delay, millis;
     char *command;
     bool override, persist;
 };
@@ -1078,7 +1088,8 @@ vector<sleepcmd> sleepcmds;
 void addsleep(int *msec, char *cmd)
 {
     sleepcmd &s = sleepcmds.add();
-    s.millis = *msec+lastmillis;
+    s.delay = max(*msec, 1);
+    s.millis = lastmillis;
     s.command = newstring(cmd);
     s.override = overrideidents;
     s.persist = persistidents;
@@ -1088,11 +1099,10 @@ COMMANDN(sleep, addsleep, "is");
 
 void checksleep(int millis)
 {
-    if(sleepcmds.empty()) return;
     loopv(sleepcmds)
     {
         sleepcmd &s = sleepcmds[i];
-        if(s.millis && millis>s.millis)
+        if(millis - s.millis >= s.delay)
         {
             char *cmd = s.command; // execute might create more sleep commands
             s.command = NULL;

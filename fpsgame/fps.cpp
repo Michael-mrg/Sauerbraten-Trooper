@@ -970,7 +970,9 @@ namespace game
         int color = 0xFFFFDD;
         if(colorserverbrowser)
         {
-            if(np == attr[3])
+            if(attr[4] > 1)
+                color = 0x90EE90;
+            else if(np == attr[3])
                 color = 0xFF4444;
             else if((float)np/attr[3] > 0.5)
                 color = 0x8888FF;
