@@ -1,6 +1,15 @@
 // creation of scoreboard
 #include "game.h"
 
+size_t strlcpy(char *d, const char *s, size_t size)
+{
+    size_t len = strlen(s);
+    len = (len >= size) ? size - 1 : len;
+    memcpy(d, s, len);
+    d[len] = '\0';
+    return len;
+}
+
 namespace game
 {
     VARP(scoreboard2d, 0, 1, 1);
