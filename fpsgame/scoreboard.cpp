@@ -392,67 +392,85 @@ namespace game
             else g.poplist(); // horizontal
         }
         
-        if(showspectators && spectators.length())
+        int len = spectators.length();
+        if(showspectators && len)
         {
             if(showclientnum || player1->privilege>=PRIV_MASTER)
             {
+                // There's probably an easier way to get vertical columns.
+                int cols = m_teammode ? 3 : 2;
+                int stride = (int)(len / cols + 1);
+                #define loopspecgroup(o, f, m, b) \
+                    for(int i = f; i < m; i ++) \
+                    { \
+                        if(i >= len) break; \
+                        fpsent *o = spectators[i]; \
+                        b; \
+                    }    
                 g.pushlist();
-                
-                g.pushlist();
-                g.text("spectator", 0xFFFF80, "server");
-                g.strut(10);
-                char *name = (char *)calloc(250, 1);
-                char *clan = (char *)calloc(250, 1);
-                loopv(spectators) 
+                for(int c = 0; c < cols; c ++)
                 {
-                    fpsent *o = spectators[i];
-                    int status = 0xFFFFDD;
-                    if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
+                    int s = c * stride;
+                    if(len <= s) break;
                     g.pushlist();
-                    if(o==player1 && highlightscore)
-                        g.background(0x808080, 3);
-                    g.text("", 0xFFFFFF, "spectator");
-                    if(colorclans)
-                    {
-                        int color = createname(colorname(o), clan, name);
-                        if(color != -1)
+                    g.pushlist();
+
+                    g.pushlist();
+                    g.text("spectator", 0xFFFF80, "server");
+                    char *name = (char *)calloc(250, 1);
+                    char *clan = (char *)calloc(250, 1);
+                    loopspecgroup(o, s, s + stride, {
+                        g.pushlist();
+                        int status = 0xFFFFDD;
+                        if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
+                        if(o==player1 && highlightscore)
+                            g.background(0x808080, 3);
+                        g.text("", 0xFFFFFF, "spectator");
+                        if(colorclans)
                         {
-                            g.text(clan, color);
-                            g.text(" ", 0xFFFFFF);
-                            g.text(name, status);
+                            int color = createname(colorname(o), clan, name);
+                            if(color != -1)
+                            {
+                                g.text(clan, color);
+                                g.text(" ", 0xFFFFFF);
+                                g.text(name, status);
+                            }
+                            else
+                                g.text(colorname(o), status);
                         }
                         else
                             g.text(colorname(o), status);
-                    }
-                    else
-                        g.text(colorname(o), status);
+                        g.poplist();
+                    });
+                    free(name);
+                    free(clan);
                     g.poplist();
-                }
-                free(clan);
-                free(name);
-                g.poplist();
 
-                g.space(1);
-                g.pushlist();
-                g.text("cn", 0xFFFF80);
-                loopv(spectators) g.textf("%d", 0xFFFFDD, NULL, spectators[i]->clientnum);
-                g.poplist();
-
-                if(showping)
-                {
-                    g.space(3);
+                    g.space(1);
                     g.pushlist();
-                    g.text("ping", 0xFFFF80);
-                    loopv(spectators)
+                    g.text("cn", 0xFFFF80);
+                    loopspecgroup(o, s, s + stride, {
+                        g.textf("%d", 0xFFFFDD, NULL, o->clientnum);
+                    });
+                    g.poplist();
+
+                    if(showping)
                     {
-                        fpsent *p = spectators[i];
-                        if(!showpj && p->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
-                        else g.textf("%d", 0xFFFFDD, NULL, p->ping);
-                    };
+                        g.space(2);
+                        g.pushlist();
+                        g.text("ping", 0xFFFF80);
+                        loopspecgroup(o, s, s + stride, {
+                            if(o->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
+                            else g.textf("%d", 0xFFFFDD, NULL, o->ping);
+                        });
+                        g.poplist();
+                    }
+
+                    if(c != cols-1)
+                        g.space(3);
+                    g.poplist();
                     g.poplist();
                 }
-
-
                 g.poplist();
             }
             else
@@ -473,7 +491,7 @@ namespace game
                         g.pushlist();
                         g.background(0x808080);
                     }
-                    g.text(colorname(o), status);
+                    g.text(colorname(o), status); // FIXME: colorclans
                     if(o==player1 && highlightscore) g.poplist();
                     if(i+1<spectators.length() && (i+1)%3) g.space(1);
                     else g.poplist();
@@ -552,3 +570,4 @@ namespace game
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
 
+			
