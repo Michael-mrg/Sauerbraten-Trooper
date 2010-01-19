@@ -3,8 +3,10 @@
 
 size_t strlcpy(char *d, const char *s, size_t size)
 {
+    if(size <= 0) return -1;
     size_t len = strlen(s);
-    len = (len >= size) ? size - 1 : len;
+    if(len >= size) len = size - 1;
+    if(len <= 0) return -1;
     memcpy(d, s, len);
     d[len] = '\0';
     return len;
@@ -84,11 +86,9 @@ namespace game
             realnameend = a;
             realnamestart = b;
         }
-        if(realnamestart > strlen(name)) // Todo: Why does this happen. <name>
-            return -1;
-        strlcpy(clanname, name+clannamestart, clannameend-clannamestart+1);
-        strlcpy(realname, name+realnamestart, realnameend+1);
-        if(!strlen(clanname) || !strlen(realname))
+        // TODO: realnamestart > strlen(name) ?
+        if(realnamestart > strlen(name) || strlcpy(clanname, name+clannamestart, clannameend-clannamestart+1) == -1 ||
+           strlcpy(realname, name+realnamestart, realnameend+1) == -1 || !strlen(clanname) || !strlen(realname))
             return -1;
 
         // Pick a color
