@@ -1,113 +1,16 @@
 // creation of scoreboard
 #include "game.h"
 
-size_t strlcpy(char *d, const char *s, size_t size)
-{
-    if(size <= 0) return -1;
-    size_t len = strlen(s);
-    if(len >= size) len = size - 1;
-    if(len <= 0) return -1;
-    memcpy(d, s, len);
-    d[len] = '\0';
-    return len;
-}
-
 namespace game
 {
     VARP(scoreboard2d, 0, 1, 1);
+    VARP(showservinfo, 0, 1, 1);
     VARP(showclientnum, 0, 0, 1);
     VARP(showpj, 0, 0, 1);
     VARP(showping, 0, 1, 1);
     VARP(showspectators, 0, 1, 1);
     VARP(highlightscore, 0, 1, 1);
     VARP(showconnecting, 0, 0, 1);
-    VARP(colorclans, 0, 1, 1);
-    VARP(showfrags, 0, 1, 1);
-
-    int createname(const char *name, char *gclan, char *gname) {
-        // Automatic colors go here
-        int colors[] = {0xFFD300, 0x787EB7, 0x759536, 0x6B8775, 0xF5F5B3, 0xFB000D, 0x61D7A4, 0x532881, 0xF08BCB, 0xDC9630, 0xFEFCFF, 0x99A1DE};
-        int colorsCount = 12;
-        // Custom colors go here
-        int customColors[] =  { 0x679FD2 };
-        const char *customNames[] = { "mVa", 0 };
-
-        if(strchr(name, ' ') != NULL) // Fail on bot [128]
-            return -1;
-
-        int clannamestart = 0;
-        int clannameend = 0;
-        int clantagstart = 0;
-        int clantagend = 0;
-        int realnamestart = 0;
-        int realnameend = 0;
-        int len = strlen(name);
-        char clanname[250], realname[250];
-        const char *startchars = "[|{}=<(/\\.";
-        const char *endchars = "]|{}=>):/\\.";
-
-        while(strchr(startchars, name[clannamestart]) != NULL) // Move clannamestart up
-            clannamestart ++;
-        if(clannamestart == 0) {
-            int p = len-1;
-            while(strchr(endchars, name[p]) != NULL) // Check for name|tag|
-                p --;
-            if(p != len-1) { // name|tag| found
-                clannameend = len;
-                clannamestart = p;
-                while(strchr(startchars, name[clannamestart]) == NULL) // Move clannamestart back
-                    clannamestart --;
-                realnamestart = 0;
-                realnameend = clannamestart;
-                clannamestart ++;
-                while(strchr(startchars, name[realnameend]) != NULL)
-                    realnameend --;
-                realnameend ++;
-            }
-        }
-        if(clannameend == 0) { // name|tag| not found, look for |tag|name
-            clannameend = clannamestart;
-            while(strchr(endchars, name[clannameend]) == NULL)
-                clannameend ++;
-            clantagend = clannameend;
-            while(strchr(endchars, name[clantagend]) != NULL)
-                clantagend ++;
-            realnamestart = clantagend;
-            realnameend = len;
-        }
-        if(clannameend == len) {
-            clannameend = 0;
-            realnamestart = 0;
-        }
-        if(realnameend == len && clannamestart == 0 && len < clannameend+realnamestart) {
-            int a = clannameend, b = clannamestart;
-            clannameend = realnameend;
-            clannamestart = realnamestart;
-            realnameend = a;
-            realnamestart = b;
-        }
-        // TODO: realnamestart > strlen(name) ?
-        if(realnamestart > strlen(name) || strlcpy(clanname, name+clannamestart, clannameend-clannamestart+1) == -1 ||
-           strlcpy(realname, name+realnamestart, realnameend+1) == -1 || !strlen(clanname) || !strlen(realname))
-            return -1;
-
-        // Pick a color
-        int color = 0xFFFFFF;
-        int i = 0;
-        while(customNames[i] && strcmp(customNames[i], clanname))
-            i ++;
-        if(customNames[i])
-            color = customColors[i];
-        else {
-            int c = 0;
-            for(int i = 1; i < strlen(clanname); i ++)
-                c += clanname[i] ^ clanname[i-1];
-            color = colors[c % colorsCount];
-        }
-        strcpy(gclan, clanname);
-        strcpy(gname, realname);
-        return color;
-    }
 
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -214,6 +117,17 @@ namespace game
 
     void renderscoreboard(g3d_gui &g, bool firstpass)
     {
+        const ENetAddress *address = connectedpeer();
+        if(showservinfo && address)
+        {
+            string hostname;
+            if(enet_address_get_host_ip(address, hostname, sizeof(hostname)) >= 0)
+            {
+                defformatstring(servstr)("%s:%d %.25s", hostname, address->port, servinfo);
+                g.text(servstr, 0xFFFF80, "server");
+            }
+        }
+     
         const char *mname = getclientmap();
         defformatstring(modemapstr)("%s: %s", server::modename(gamemode), mname[0] ? mname : "[new map]");
         if(m_timed && mname[0] && minremain >= 0)
@@ -281,26 +195,12 @@ namespace game
                 g.pushlist(); // horizontal
             }
 
-            if(showfrags)
+            if(!cmode || !cmode->hidefrags())
             { 
                 g.pushlist();
-                g.strut(3);
-                g.text("K", fgcolor);
-                loopv(sg.players)
-                {
-                    fpsent *o = sg.players[i];
-                    g.textf("%d", 0xFFFFDD, NULL, o->frags);
-                }
-                g.poplist();
-
-                g.pushlist();
-                g.strut(5);
-                g.text("D", fgcolor);
-                loopv(sg.players)
-                {
-                    fpsent *o = sg.players[i];
-                    g.textf("%d", 0xFFFFDD, NULL, o->deaths);
-                }
+                g.strut(7);
+                g.text("frags", fgcolor);
+                loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->frags));
                 g.poplist();
             }
 
@@ -338,9 +238,6 @@ namespace game
             g.pushlist();
             g.text("name", fgcolor);
             g.strut(10);
-
-            char *name = (char *)calloc(250, 1);
-            char *clan = (char *)calloc(250, 1);
             loopscoregroup(o, 
             {
                 int status = o->state!=CS_DEAD ? 0xFFFFDD : 0x606060;
@@ -349,25 +246,8 @@ namespace game
                     status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
                     if(o->state==CS_DEAD) status = (status>>1)&0x7F7F7F;
                 }
-                g.pushlist();
-                if(colorclans)
-                {
-                    int color = createname(colorname(o), clan, name);
-                    if(color != -1)
-                    {
-                        g.text(clan, color);
-                        g.text(" ", 0xFFFFFF);
-                        g.text(name, status);
-                    }
-                    else
-                        g.text(colorname(o), status);
-                }
-                else
-                     g.text(colorname(o), status);
-                g.poplist();
+                g.text(colorname(o), status);
             });
-            free(name);
-            free(clan);
             g.poplist();
 
             if(showclientnum || player1->privilege>=PRIV_MASTER)
@@ -392,85 +272,35 @@ namespace game
             else g.poplist(); // horizontal
         }
         
-        int len = spectators.length();
-        if(showspectators && len)
+        if(showspectators && spectators.length())
         {
             if(showclientnum || player1->privilege>=PRIV_MASTER)
             {
-                // There's probably an easier way to get vertical columns.
-                int cols = m_teammode ? 3 : 2;
-                int stride = (int)(len / cols + 1);
-                #define loopspecgroup(o, f, m, b) \
-                    for(int i = f; i < m; i ++) \
-                    { \
-                        if(i >= len) break; \
-                        fpsent *o = spectators[i]; \
-                        b; \
-                    }    
                 g.pushlist();
-                for(int c = 0; c < cols; c ++)
+                
+                g.pushlist();
+                g.text("spectator", 0xFFFF80, "server");
+                loopv(spectators) 
                 {
-                    int s = c * stride;
-                    if(len <= s) break;
-                    g.pushlist();
-                    g.pushlist();
-
-                    g.pushlist();
-                    g.text("spectator", 0xFFFF80, "server");
-                    char *name = (char *)calloc(250, 1);
-                    char *clan = (char *)calloc(250, 1);
-                    loopspecgroup(o, s, s + stride, {
-                        g.pushlist();
-                        int status = 0xFFFFDD;
-                        if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
-                        if(o==player1 && highlightscore)
-                            g.background(0x808080, 3);
-                        g.text("", 0xFFFFFF, "spectator");
-                        if(colorclans)
-                        {
-                            int color = createname(colorname(o), clan, name);
-                            if(color != -1)
-                            {
-                                g.text(clan, color);
-                                g.text(" ", 0xFFFFFF);
-                                g.text(name, status);
-                            }
-                            else
-                                g.text(colorname(o), status);
-                        }
-                        else
-                            g.text(colorname(o), status);
-                        g.poplist();
-                    });
-                    free(name);
-                    free(clan);
-                    g.poplist();
-
-                    g.space(1);
-                    g.pushlist();
-                    g.text("cn", 0xFFFF80);
-                    loopspecgroup(o, s, s + stride, {
-                        g.textf("%d", 0xFFFFDD, NULL, o->clientnum);
-                    });
-                    g.poplist();
-
-                    if(showping)
+                    fpsent *o = spectators[i];
+                    int status = 0xFFFFDD;
+                    if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
+                    if(o==player1 && highlightscore)
                     {
-                        g.space(2);
                         g.pushlist();
-                        g.text("ping", 0xFFFF80);
-                        loopspecgroup(o, s, s + stride, {
-                            if(o->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
-                            else g.textf("%d", 0xFFFFDD, NULL, o->ping);
-                        });
-                        g.poplist();
+                        g.background(0x808080, 3);
                     }
-
-                    if(c != cols-1)
-                        g.space(3);
-                    g.poplist();
-                    g.poplist();
+                    g.text(colorname(o), status, "spectator");
+                    if(o==player1 && highlightscore) g.poplist();
                 }
+                g.poplist();
+
+                g.space(1);
+                g.pushlist();
+                g.text("cn", 0xFFFF80);
+                loopv(spectators) g.textf("%d", 0xFFFFDD, NULL, spectators[i]->clientnum);
+                g.poplist();
+
                 g.poplist();
             }
             else
@@ -491,36 +321,13 @@ namespace game
                         g.pushlist();
                         g.background(0x808080);
                     }
-                    g.text(colorname(o), status); // FIXME: colorclans
+                    g.text(colorname(o), status);
                     if(o==player1 && highlightscore) g.poplist();
                     if(i+1<spectators.length() && (i+1)%3) g.space(1);
                     else g.poplist();
                 }
             }
         }
-    }
-
-    static int scoresort(const int *a, const int *b)
-    {
-        return *b-*a;
-    }
-    int getscores(vector<int> &v)
-    {
-        int numgroups = groupplayers();
-        loopk(numgroups)
-        {
-            scoregroup &sg = *groups[k];
-            if(sg.team && m_teammode)
-                v.add(sg.score);
-        }
-        v.sort(scoresort);
-        loopk(numgroups)
-        {
-            scoregroup &sg = *groups[k];
-            if(isteam(player1->team, sg.team))
-                return k;
-        }
-        return -1;
     }
 
     struct scoreboardgui : g3d_callback
@@ -570,4 +377,3 @@ namespace game
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
 
-			

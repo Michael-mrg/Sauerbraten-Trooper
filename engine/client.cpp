@@ -41,6 +41,24 @@ bool isconnected(bool attempt)
 
 ICOMMAND(isconnected, "i", (int *attempt), intret(isconnected(*attempt > 0) ? 1 : 0));
 
+const ENetAddress *connectedpeer()
+{
+    return curpeer ? &curpeer->address : NULL;
+}
+
+ICOMMAND(connectedip, "", (),
+{
+    const ENetAddress *address = connectedpeer();
+    string hostname;
+    result(address && enet_address_get_host_ip(address, hostname, sizeof(hostname)) >= 0 ? hostname : "");
+});
+
+ICOMMAND(connectedport, "", (),
+{
+    const ENetAddress *address = connectedpeer();
+    intret(address ? address->port : -1);
+});
+
 void abortconnect()
 {
     if(!connpeer) return;

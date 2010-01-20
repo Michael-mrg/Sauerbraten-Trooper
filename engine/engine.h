@@ -122,8 +122,8 @@ struct font
     char *name;
     Texture *tex;
     vector<charinfo> chars;
-    short defaultw, defaulth;
-    short offsetx, offsety, offsetw, offseth;
+    int charoffset, defaultw, defaulth;
+    int offsetx, offsety, offsetw, offseth;
 };
 
 #define FONTH (curfont->defaulth)
@@ -421,6 +421,7 @@ extern hashtable<const char *, ident> *idents;
 extern bool overrideidents, persistidents;
 
 extern void explodelist(const char *s, vector<char *> &elems);
+extern char *indexlist(const char *s, int pos);
 
 extern void clearoverrides();
 extern void writecfg();

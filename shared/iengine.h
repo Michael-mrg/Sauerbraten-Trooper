@@ -149,6 +149,8 @@ extern void keyrepeat(bool on);
 
 // rendertext
 extern bool setfont(const char *name);
+extern void pushfont();
+extern bool popfont();
 extern void gettextres(int &w, int &h);
 extern void draw_text(const char *str, int left, int top, int r = 255, int g = 255, int b = 255, int a = 255, int cursor = -1, int maxwidth = -1);
 extern void draw_textf(const char *fstr, int left, int top, ...);
@@ -293,7 +295,7 @@ extern void cleanragdoll(dynent *d);
 
 extern int maxclients;
 
-enum { DISC_NONE = 0, DISC_EOP, DISC_CN, DISC_KICK, DISC_TAGT, DISC_IPBAN, DISC_PRIVATE, DISC_MAXCLIENTS, DISC_TIMEOUT, DISC_NUM };
+enum { DISC_NONE = 0, DISC_EOP, DISC_CN, DISC_KICK, DISC_TAGT, DISC_IPBAN, DISC_PRIVATE, DISC_MAXCLIENTS, DISC_TIMEOUT, DISC_OVERFLOW, DISC_NUM };
 
 extern void *getclientinfo(int i);
 extern void sendf(int cn, int chan, const char *format, ...);
@@ -332,6 +334,7 @@ extern void sendclientpacket(ENetPacket *packet, int chan);
 extern void flushclient();
 extern void disconnect(bool async = false, bool cleanup = true);
 extern bool isconnected(bool attempt = false);
+extern const ENetAddress *connectedpeer();
 extern bool multiplayer(bool msg = true);
 extern void neterr(const char *s, bool disc = true);
 extern void gets2c();

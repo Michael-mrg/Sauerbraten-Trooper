@@ -230,7 +230,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     SV_BASES, 0, SV_BASEINFO, 0, SV_BASESCORE, 0, SV_REPAMMO, 1, SV_BASEREGEN, 6, SV_ANNOUNCE, 2,
     SV_LISTDEMOS, 1, SV_SENDDEMOLIST, 0, SV_GETDEMO, 2, SV_SENDDEMO, 0,
     SV_DEMOPLAYBACK, 3, SV_RECORDDEMO, 2, SV_STOPDEMO, 1, SV_CLEARDEMOS, 2,
-    SV_TAKEFLAG, 2, SV_RETURNFLAG, 3, SV_RESETFLAG, 4, SV_INVISFLAG, 3, SV_TRYDROPFLAG, 1, SV_DROPFLAG, 6, SV_SCOREFLAG, 6, SV_INITFLAGS, 6,
+    SV_TAKEFLAG, 3, SV_RETURNFLAG, 4, SV_RESETFLAG, 5, SV_INVISFLAG, 3, SV_TRYDROPFLAG, 1, SV_DROPFLAG, 7, SV_SCOREFLAG, 8, SV_INITFLAGS, 0,
     SV_SAYTEAM, 0,
     SV_CLIENT, 0,
     SV_AUTHTRY, 0, SV_AUTHCHAL, 0, SV_AUTHANS, 0, SV_REQAUTH, 0,
@@ -245,7 +245,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
 #define SAUERBRATEN_SERVER_PORT 28785
 #define SAUERBRATEN_SERVINFO_PORT 28786
 #define SAUERBRATEN_MASTER_PORT 28787
-#define PROTOCOL_VERSION 257            // bump when protocol changes
+#define PROTOCOL_VERSION 258            // bump when protocol changes
 #define DEMO_VERSION 1                  // bump when demo format changes
 #define DEMO_MAGIC "SAUERBRATEN_DEMO"
 
@@ -602,7 +602,6 @@ namespace game
     extern string clientmap;
     extern int minremain;
     extern bool intermission;
-    extern int maptimeleft;
     extern int maptime, maprealtime;
     extern fpsent *player1;
     extern vector<fpsent *> players, clients;
@@ -663,6 +662,7 @@ namespace game
 
     // client
     extern bool connected, remote, demoplayback;
+    extern string servinfo;
 
     extern int parseplayer(const char *arg);
     extern void addmsg(int type, const char *fmt = NULL, ...);
@@ -723,7 +723,6 @@ namespace game
 
     // scoreboard
     extern void showscores(bool on);
-    extern int getscores(vector<int> &v);
     extern void getbestplayers(vector<fpsent *> &best);
     extern void getbestteams(vector<const char *> &best);
 

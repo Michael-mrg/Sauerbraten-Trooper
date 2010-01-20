@@ -207,7 +207,7 @@ namespace server
 
     struct clientinfo
     {
-        int clientnum, ownernum, connectmillis, sessionid;
+        int clientnum, ownernum, connectmillis, sessionid, overflow;
         string name, team, mapvote;
         int playermodel;
         int modevote;
@@ -240,6 +240,7 @@ namespace server
             mapvote[0] = 0;
             state.reset();
             events.deletecontentsp();
+            overflow = 0;
             timesync = false;
             lastevent = 0;
             clientmap[0] = '\0';
@@ -576,7 +577,7 @@ namespace server
                 clientinfo *ci = team[i][j];
                 if(!strcmp(ci->team, teamnames[i])) continue;
                 copystring(ci->team, teamnames[i], MAXTEAMLEN+1);
-                sendf(-1, 1, "riis", SV_SETTEAM, ci->clientnum, teamnames[i]);
+                sendf(-1, 1, "riisi", SV_SETTEAM, ci->clientnum, teamnames[i], -1);
             }
         }
     }
@@ -944,7 +945,14 @@ namespace server
         if(type>=SV_EDITENT && type<=SV_EDITVAR && !m_edit) return -1;
         // server only messages
         static int servtypes[] = { SV_SERVINFO, SV_INITCLIENT, SV_WELCOME, SV_MAPRELOAD, SV_SERVMSG, SV_DAMAGE, SV_HITPUSH, SV_SHOTFX, SV_DIED, SV_SPAWNSTATE, SV_FORCEDEATH, SV_ITEMACC, SV_ITEMSPAWN, SV_TIMEUP, SV_CDIS, SV_CURRENTMASTER, SV_PONG, SV_RESUME, SV_BASESCORE, SV_BASEINFO, SV_BASEREGEN, SV_ANNOUNCE, SV_SENDDEMOLIST, SV_SENDDEMO, SV_DEMOPLAYBACK, SV_SENDMAP, SV_DROPFLAG, SV_SCOREFLAG, SV_RETURNFLAG, SV_RESETFLAG, SV_INVISFLAG, SV_CLIENT, SV_AUTHCHAL, SV_INITAI };
-        if(ci) loopi(sizeof(servtypes)/sizeof(int)) if(type == servtypes[i]) return -1;
+        if(ci) 
+        {
+            loopi(sizeof(servtypes)/sizeof(int)) if(type == servtypes[i]) return -1;
+            if(type < SV_EDITENT || type > SV_EDITVAR || !m_edit) 
+            {
+                if(++ci->overflow >= 200) return -2;
+            }
+        }
         return type;
     }
 
@@ -996,6 +1004,7 @@ namespace server
         {
             clientinfo &ci = *clients[i];
             if(ci.state.aitype != AI_NONE) continue;
+            ci.overflow = 0;
             addclientstate(ws, ci);
             loopv(ci.bots)
             {
@@ -1175,6 +1184,7 @@ namespace server
             putint(p, SV_SETTEAM);
             putint(p, ci->clientnum);
             sendstring(ci->team, p);
+            putint(p, -1);
         }
         if(ci && (m_demo || m_mp(gamemode)) && ci->state.state!=CS_SPECTATOR)
         {
@@ -1497,7 +1507,7 @@ namespace server
         if(!gs.isalive(gamemillis) ||
            wait<gs.gunwait ||
            gun<GUN_FIST || gun>GUN_PISTOL ||
-           gs.ammo[gun]<=0)
+           gs.ammo[gun]<=0 || (guns[gun].range && from.dist(to) > guns[gun].range + 1))
             return;
         if(gun!=GUN_FIST) gs.ammo[gun]--;
         gs.lastshot = millis;
@@ -1715,7 +1725,7 @@ namespace server
 
     void sendservinfo(clientinfo *ci)
     {
-        sendf(ci->clientnum, 1, "ri5", SV_SERVINFO, ci->clientnum, PROTOCOL_VERSION, ci->sessionid, serverpass[0] ? 1 : 0);
+        sendf(ci->clientnum, 1, "ri5s", SV_SERVINFO, ci->clientnum, PROTOCOL_VERSION, ci->sessionid, serverpass[0] ? 1 : 0, serverdesc);
     }
 
     void noclients()
@@ -2186,17 +2196,12 @@ namespace server
             {
                 getstring(text, p);
                 filtertext(text, text, false, MAXTEAMLEN);
-                if(strcmp(ci->team, text))
+                if(strcmp(ci->team, text) && m_teammode && (!smode || smode->canchangeteam(ci, ci->team, text)))
                 {
-                    if(m_teammode && smode && !smode->canchangeteam(ci, ci->team, text))
-                        sendf(sender, 1, "riis", SV_SETTEAM, sender, ci->team);
-                    else
-                    {
-                        if(smode && ci->state.state==CS_ALIVE) smode->changeteam(ci, ci->team, text);
-                        copystring(ci->team, text);
-                        aiman::changeteam(ci);
-                        sendf(-1, 1, "riis", SV_SETTEAM, sender, ci->team);
-                    }
+                    if(ci->state.state==CS_ALIVE) suicide(ci);
+                    copystring(ci->team, text);
+                    aiman::changeteam(ci);
+                    sendf(-1, 1, "riisi", SV_SETTEAM, sender, ci->team, ci->state.state==CS_SPECTATOR ? -1 : 0);
                 }
                 break;
             }
@@ -2370,12 +2375,11 @@ namespace server
                 if(!wi || !strcmp(wi->team, text)) break;
                 if(!smode || smode->canchangeteam(wi, wi->team, text))
                 {
-                    if(smode && wi->state.state==CS_ALIVE)
-                        smode->changeteam(wi, wi->team, text);
+                    if(wi->state.state==CS_ALIVE) suicide(wi);
                     copystring(wi->team, text, MAXTEAMLEN+1);
                 }
                 aiman::changeteam(wi);
-                sendf(-1, 1, "riis", SV_SETTEAM, who, wi->team);
+                sendf(-1, 1, "riisi", SV_SETTEAM, who, wi->team, 1);
                 break;
             }
 
@@ -2511,6 +2515,14 @@ namespace server
             #include "capture.h"
             #include "ctf.h"
             #undef PARSEMESSAGES
+
+            case -1:
+                disconnect_client(sender, DISC_TAGT);
+                return;
+
+            case -2:
+                disconnect_client(sender, DISC_OVERFLOW);
+                return;
 
             default:
             {

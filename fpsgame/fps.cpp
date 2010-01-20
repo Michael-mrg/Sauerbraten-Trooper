@@ -3,7 +3,7 @@
 namespace game
 {
     bool intermission = false;
-    int maptime = 0, maprealtime = 0, minremain = 0, maptimeleft = 0;
+    int maptime = 0, maprealtime = 0, minremain = 0;
     int respawnent = -1;
     int lasthit = 0, lastspawnattempt = 0;
 
@@ -378,7 +378,6 @@ namespace game
         else
         {
             d->move = d->strafe = 0;
-            d->deaths ++;
             d->resetinterp();
             d->smoothmillis = 0;
             playsound(S_DIE1+rnd(2), &d->o);
@@ -439,12 +438,13 @@ namespace game
 
             showscores(true);
             disablezoom();
+            
+            if(identexists("intermission")) execute("intermission");
         }
         else if(timeremain > 0)
         {
             conoutf(CON_GAMEINFO, "\f2time remaining: %d %s", timeremain, timeremain==1 ? "minute" : "minutes");
         }
-        maptimeleft = (lastmillis+timeremain*60000)*(maptimeleft==-1 ? -1 : 1);
     }
 
     vector<fpsent *> clients;
@@ -815,49 +815,6 @@ namespace game
         return 0;
     }
 
-    // time HUD item, thanks to WahnFred
-    VAR(showtimeleft, 0, 1, 1);
-
-    void rendertimeleft(int w, int h, int fonth)
-    {
-        if(showtimeleft && !m_sp && hudplayer()->state!=CS_EDITING)
-        {
-            int remain = maptimeleft;
-            if(maptimeleft<0) remain*=-1;
-            int t = intermission ? 0 : m_edit ? lastmillis/1000 : (remain+1000-lastmillis)/1000;
-            int m = t/60, s = t%60;
-            if(!m_edit && !m && s && s<30 && lastmillis%1000>=500) return; // Blinking in last 30 seconds
-            if(maptimeleft>-1 || m_edit) draw_textf("%s%d:%-2.2d", w*3-9*fonth, h*3-fonth*3/2, (!m_edit && !m) ? "\f3" : (!s) ? "\f1" : "", m, s);
-            else draw_textf("%s<%d min", w*3-9*fonth, h*3-fonth*3/2, (!m_edit && !m) ? "\f3" : (!s) ? "\f1" : "", m+1);
-        }
-    }
-
-    VARP(showscorehud, 0, 0, 1);
-    
-    void renderscorehud(int w, int h, int fonth)
-    {
-        if(showscorehud && !m_sp && hudplayer()->state!=CS_EDITING)
-        {
-            vector<int> scores;
-            int n = getscores(scores);
-            char str[50];
-            int c = 0;
-            loopv(scores)
-                c += sprintf(str+c, "%s%s%d\f7", !c ? "" : "-", n == i ? "\f1" : "\f7", scores[i]);
-            draw_textf(str, w*3-5*fonth,h*3-fonth*5/2);
-        }
-    }
-
-    VARP(showpinghud, 0, 0, 1);
-
-    void renderpinghud(int w, int h, int fonth)
-    {
-        if(showpinghud && !m_sp && hudplayer()->state!=CS_EDITING)
-        {
-            draw_textf("%d", w*3-9*fonth, h*3-fonth*5/2, player1->ping);
-        }
-    }
-
     VARP(teamcrosshair, 0, 1, 1);
     VARP(hitcrosshair, 0, 425, 1000);
 
@@ -929,8 +886,6 @@ namespace game
         g->poplist();
     }
 
-    VARP(colorserverbrowser, 0, 1, 1);
-
     bool serverinfoentry(g3d_gui *g, int i, const char *name, int port, const char *sdesc, const char *map, int ping, const vector<int> &attr, int np)
     {
         if(ping < 0 || attr.empty() || attr[0]!=PROTOCOL_VERSION)
@@ -967,53 +922,42 @@ namespace game
             return false;
         }
 
-        int color = 0xFFFFDD;
-        if(colorserverbrowser)
-        {
-            if(attr[4] > 1)
-                color = 0x90EE90;
-            else if(np == attr[3])
-                color = 0xFF4444;
-            else if((float)np/attr[3] > 0.5)
-                color = 0x8888FF;
-        }
-
         switch(i)
         {
             case 0:
-                if(g->buttonf("%d ", color, "server", ping)&G3D_UP) return true;
+                if(g->buttonf("%d ", 0xFFFFDD, "server", ping)&G3D_UP) return true;
                 break;
 
             case 1:
                 if(attr.length()>=4)
                 {
-                    if(g->buttonf("%d/%d ", color, NULL, np, attr[3])&G3D_UP) return true;
+                    if(g->buttonf("%d/%d ", 0xFFFFDD, NULL, np, attr[3])&G3D_UP) return true;
                 }
-                else if(g->buttonf("%d ", color, NULL, np)&G3D_UP) return true;
+                else if(g->buttonf("%d ", 0xFFFFDD, NULL, np)&G3D_UP) return true;
                 break;
 
             case 2:
-                if(g->buttonf("%.25s ", color, NULL, map)&G3D_UP) return true;
+                if(g->buttonf("%.25s ", 0xFFFFDD, NULL, map)&G3D_UP) return true;
                 break;
 
             case 3:
-                if(g->buttonf("%s ", color, NULL, attr.length()>=2 ? server::modename(attr[1], "") : "")&G3D_UP) return true;
+                if(g->buttonf("%s ", 0xFFFFDD, NULL, attr.length()>=2 ? server::modename(attr[1], "") : "")&G3D_UP) return true;
                 break;
 
             case 4:
-                if(g->buttonf("%s ", color, NULL, attr.length()>=5 ? server::mastermodename(attr[4], "") : "")&G3D_UP) return true;
+                if(g->buttonf("%s ", 0xFFFFDD, NULL, attr.length()>=5 ? server::mastermodename(attr[4], "") : "")&G3D_UP) return true;
                 break;
 
             case 5:
-                if(g->buttonf("%s ", color, NULL, name)&G3D_UP) return true;
+                if(g->buttonf("%s ", 0xFFFFDD, NULL, name)&G3D_UP) return true;
                 break;
 
             case 6:
-                if(g->buttonf("%d ", color, NULL, port)&G3D_UP) return true;
+                if(g->buttonf("%d ", 0xFFFFDD, NULL, port)&G3D_UP) return true;
                 break;
 
             case 7:
-                if(g->buttonf("%.25s", color, NULL, sdesc)&G3D_UP) return true;
+                if(g->buttonf("%.25s", 0xFFFFDD, NULL, sdesc)&G3D_UP) return true;
                 break;
         }
         return false;

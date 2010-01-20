@@ -10,7 +10,6 @@ namespace game
     VARP(ragdollfade, 0, 1000, 300000);
     VARFP(playermodel, 0, 0, 4, { if(player1->clientnum < 0) player1->playermodel = playermodel; });
     VARP(forceplayermodels, 0, 0, 1);
-    VARP(overridemodel, -1, -1, 4);
     VARP(allplayermodels, 0, 0, 1);
 
     vector<fpsent *> ragdolls;
@@ -67,7 +66,6 @@ namespace game
 
     const playermodelinfo *getplayermodelinfo(int n)
     {
-        if(overridemodel != -1) return &playermodels[overridemodel];
         if(size_t(n) >= sizeof(playermodels)/sizeof(playermodels[0])) return NULL;
         return &playermodels[n];
     }

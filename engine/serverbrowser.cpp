@@ -640,18 +640,3 @@ void writeservercfg()
     delete f;
 }
 
-// add into serverbrowser.cpp
- 
-extern ENetPeer *curpeer;
-ICOMMAND(curserverdesc, "", (), {
-    serverinfo *si = NULL;
-    if(curpeer) loopv(servers) if(curpeer->address.host == servers[i]->address.host && curpeer->address.port == servers[i]->port) { si = servers[i]; break; }
-    result(si?(si->sdesc[0]?si->sdesc:si->name):"");
-});
-ICOMMAND(curserverip, "", (), {
-    char ipname[64] = "";
-    if(curpeer) enet_address_get_host_ip(&curpeer->address, ipname, sizeof(ipname));
-    result(ipname);
-});
-ICOMMAND(curserverport, "", (), intret(curpeer?curpeer->address.port:0));
-

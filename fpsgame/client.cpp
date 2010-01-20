@@ -2,7 +2,7 @@
 
 namespace game
 {
-    VARP(maxradarscale, 0, 1024, 10000);
+    VARP(maxradarscale, 1, 1024, 10000);
 
     #include "capture.h"
     #include "ctf.h"
@@ -23,7 +23,7 @@ namespace game
 
     bool connected = false, remote = false, demoplayback = false, gamepaused = false;
     int sessionid = 0;
-    string connectpass = "";
+    string servinfo = "", connectpass = "";
 
     VARP(deadpush, 1, 2, 20);
 
@@ -44,8 +44,8 @@ namespace game
     {
         if(team[0])
         {
-            filtertext(player1->team, team, false, MAXTEAMLEN);
-            addmsg(SV_SWITCHTEAM, "rs", player1->team);
+            if(player1->clientnum < 0) filtertext(player1->team, team, false, MAXTEAMLEN);
+            else addmsg(SV_SWITCHTEAM, "rs", team);
         }
         else conoutf("your team is: %s", player1->team);
     }
@@ -579,7 +579,6 @@ namespace game
     {
         connected = true;
         remote = _remote;
-        maptimeleft = remote ? -1 : 0;
         if(editmode) toggleedit();
     }
 
@@ -862,6 +861,8 @@ namespace game
                 sessionid = getint(p);
                 player1->clientnum = mycn;      // we are now connected
                 if(getint(p) > 0) conoutf("this server is password protected");
+                getstring(text, p);
+                copystring(servinfo, text);
                 sendintro();
                 break;
             }
@@ -1000,8 +1001,11 @@ namespace game
                 {
                     filtertext(text, text, false, MAXNAMELEN);
                     if(!text[0]) copystring(text, "unnamed");
-                    conoutf("%s is now known as %s", colorname(d), colorname(d, text));
-                    copystring(d->name, text, MAXNAMELEN+1);
+                    if(strcmp(text, d->name))
+                    {
+                        conoutf("%s is now known as %s", colorname(d), colorname(d, text));
+                        copystring(d->name, text, MAXNAMELEN+1);
+                    }
                 }
                 break;
 
@@ -1356,9 +1360,13 @@ namespace game
             {
                 int wn = getint(p);
                 getstring(text, p);
+                int reason = getint(p);
                 fpsent *w = getclient(wn);
                 if(!w) return;
                 filtertext(w->team, text, false, MAXTEAMLEN);
+                static const char *fmt[2] = { "%s switched to team %s", "%s forced to team %s"};
+                if(reason >= 0 && size_t(reason) < sizeof(fmt)/sizeof(fmt[0]))
+                    conoutf(fmt[reason], colorname(w), w->team);
                 break;
             }
 
