@@ -24,7 +24,7 @@ namespace game
     }
     COMMAND(taunt, "");
 
-	void follow(char *arg)
+    void follow(char *arg)
     {
         if(arg[0] ? player1->state==CS_SPECTATOR : following>=0)
         {
@@ -33,7 +33,7 @@ namespace game
             followdir = 0;
             conoutf("follow %s", following>=0 ? "on" : "off");
         }
-	}
+    }
     COMMAND(follow, "s");
 
     void nextfollow(int dir)
@@ -348,7 +348,7 @@ namespace game
         }
         damageeffect(damage, d, d!=h);
 
-		ai::damaged(d, actor);
+        ai::damaged(d, actor);
 
         if(m_sp && slowmosp && d==player1 && d->health < 1) d->health = 1;
 
@@ -419,7 +419,7 @@ namespace game
             else conoutf(contype, "\f2%s fragged %s", aname, dname);
         }
         deathstate(d);
-		ai::killed(d, actor);
+        ai::killed(d, actor);
     }
 
     void timeupdate(int timeremain)
@@ -627,7 +627,8 @@ namespace game
         return false;
     }
 
-    const char *colorname(fpsent *d, const char *name, const char *prefix)
+    VARP(colornames, 0, 1, 1);
+    const char *colornamenc(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
         if(name[0] && !duplicatename(d, name) && d->aitype == AI_NONE) return name;
@@ -636,6 +637,48 @@ namespace game
         cidx = (cidx+1)%3;
         formatstring(cname[cidx])(d->aitype == AI_NONE ? "%s%s \fs\f5(%d)\fr" : "%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
         return cname[cidx];
+    }
+    
+    const char *colornamec(fpsent *d, const char *name, const char *prefix)
+    {
+        if(!name) name = d->name;
+        static string cname[3];
+        static int cidx = 0;
+        cidx = (cidx+1)%3;
+        if(d->aitype == AI_NONE)
+        {
+            bool isdup = false;
+            loopv(players)
+            if(d!=players[i] && !strcmp(name, players[i]->name))
+            {
+                isdup = true;
+                break;
+            }
+            if(isdup)
+                formatstring(cname[cidx])("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
+            else
+            {
+                char *gname = (char *)calloc(250, 1);
+                char *gclan = (char *)calloc(250, 1);
+                int color = createname(colornamenc(d, name, prefix), gclan, gname, true);
+                if(color != -1)
+                    formatstring(cname[cidx])("\fs\e%x%s\fr %s", (color % 12), gclan, gname);
+                else
+                    return name;
+                free(gname);
+                free(gclan);
+            }
+        }
+        else
+            formatstring(cname[cidx])("%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
+        return cname[cidx];
+    }
+    
+    const char *colorname(fpsent *d, const char *name, const char *prefix)
+    {
+        if(colornames)
+            return colornamec(d, name, prefix);
+        return colornamenc(d, name, prefix);
     }
 
     void suicide(physent *d)

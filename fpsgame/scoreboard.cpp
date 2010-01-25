@@ -24,7 +24,7 @@ namespace game
     VARP(colorclans, 0, 1, 1);
     VARP(showfrags, 0, 1, 1);
 
-    int createname(const char *name, char *gclan, char *gname) {
+    int createname(const char *name, char *gclan, char *gname, bool ind) {
         // Automatic colors go here
         int colors[] = {0xFFD300, 0x787EB7, 0x759536, 0x6B8775, 0xF5F5B3, 0xFB000D, 0x61D7A4, 0x532881, 0xF08BCB, 0xDC9630, 0xFEFCFF, 0x99A1DE};
         int colorsCount = 12;
@@ -94,19 +94,21 @@ namespace game
         // Pick a color
         int color = 0xFFFFFF;
         int i = 0;
-        while(customNames[i] && strcmp(customNames[i], clanname))
+        while(!ind && customNames[i] && strcmp(customNames[i], clanname))
             i ++;
-        if(customNames[i])
+        int c = 0;
+        if(!ind && customNames[i])
             color = customColors[i];
-        else {
-            int c = 0;
+        else
+        {
             for(int i = 1; i < strlen(clanname); i ++)
                 c += clanname[i] ^ clanname[i-1];
-            color = colors[c % colorsCount];
+            c %= colorsCount;
+            color = colors[c];
         }
         strcpy(gclan, clanname);
         strcpy(gname, realname);
-        return color;
+        return ind ? c : color;
     }
 
     static int playersort(const fpsent **a, const fpsent **b)
@@ -352,7 +354,7 @@ namespace game
                 g.pushlist();
                 if(colorclans)
                 {
-                    int color = createname(colorname(o), clan, name);
+                    int color = createname(colornamenc(o), clan, name);
                     if(color != -1)
                     {
                         g.text(clan, color);
@@ -360,10 +362,10 @@ namespace game
                         g.text(name, status);
                     }
                     else
-                        g.text(colorname(o), status);
+                        g.text(colornamenc(o), status);
                 }
                 else
-                     g.text(colorname(o), status);
+                     g.text(colornamenc(o), status);
                 g.poplist();
             });
             free(name);
@@ -428,7 +430,7 @@ namespace game
                         g.text("", 0xFFFFFF, "spectator");
                         if(colorclans)
                         {
-                            int color = createname(colorname(o), clan, name);
+                            int color = createname(colornamenc(o), clan, name);
                             if(color != -1)
                             {
                                 g.text(clan, color);
@@ -436,10 +438,10 @@ namespace game
                                 g.text(name, status);
                             }
                             else
-                                g.text(colorname(o), status);
+                                g.text(colornamenc(o), status);
                         }
                         else
-                            g.text(colorname(o), status);
+                            g.text(colornamenc(o), status);
                         g.poplist();
                     });
                     free(name);
@@ -572,4 +574,4 @@ namespace game
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
 
-			
+            

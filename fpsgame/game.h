@@ -615,6 +615,8 @@ namespace game
     extern bool clientoption(const char *arg);
     extern fpsent *getclient(int cn);
     extern fpsent *newclient(int cn);
+    extern const char *colornamenc(fpsent *d, const char *name = NULL, const char *prefix = "");
+    extern const char *colornamec(fpsent *d, const char *name = NULL, const char *prefix = "");
     extern const char *colorname(fpsent *d, const char *name = NULL, const char *prefix = "");
     extern fpsent *pointatplayer();
     extern fpsent *hudplayer();
@@ -722,6 +724,7 @@ namespace game
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
 
     // scoreboard
+    extern int createname(const char *name, char *gclan, char *gname, bool ind=false);
     extern void showscores(bool on);
     extern int getscores(vector<int> &v);
     extern void getbestplayers(vector<fpsent *> &best);
