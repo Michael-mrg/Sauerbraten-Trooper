@@ -349,42 +349,6 @@ namespace server
     stream *demotmp = NULL, *demorecord = NULL, *demoplayback = NULL;
     int nextplayback = 0, demomillis = 0;
 
-    struct servmode
-    {
-        virtual ~servmode() {}
-
-        virtual void entergame(clientinfo *ci) {}
-        virtual void leavegame(clientinfo *ci, bool disconnecting = false) {}
-
-        virtual void moved(clientinfo *ci, const vec &oldpos, bool oldclip, const vec &newpos, bool newclip) {}
-        virtual bool canspawn(clientinfo *ci, bool connecting = false) { return true; }
-        virtual void spawned(clientinfo *ci) {}
-        virtual int fragvalue(clientinfo *victim, clientinfo *actor)
-        {
-            if(victim==actor || isteam(victim->team, actor->team)) return -1;
-            return 1;
-        }
-        virtual void died(clientinfo *victim, clientinfo *actor) {}
-        virtual bool canchangeteam(clientinfo *ci, const char *oldteam, const char *newteam) { return true; }
-        virtual void changeteam(clientinfo *ci, const char *oldteam, const char *newteam) {}
-        virtual void initclient(clientinfo *ci, packetbuf &p, bool connecting) {}
-        virtual void update() {}
-        virtual void reset(bool empty) {}
-        virtual void intermission() {}
-        virtual bool hidefrags() { return false; }
-        virtual int getteamscore(const char *team) { return 0; }
-        virtual void getteamscores(vector<teamscore> &scores) {}
-        virtual bool extinfoteam(const char *team, ucharbuf &p) { return false; }
-    };
-
-    #define SERVMODE 1
-    #include "capture.h"
-    #include "ctf.h"
-
-    captureservmode capturemode;
-    ctfservmode ctfmode;
-    servmode *smode = NULL;
-
     SVAR(serverdesc, "");
     SVAR(serverpass, "");
     SVAR(adminpass, "");
@@ -494,6 +458,42 @@ namespace server
         formatstring(cname[cidx])(ci->state.aitype == AI_NONE ? "%s \fs\f5(%d)\fr" : "%s \fs\f5[%d]\fr", name, ci->clientnum);
         return cname[cidx];
     }
+
+    struct servmode
+    {
+        virtual ~servmode() {}
+
+        virtual void entergame(clientinfo *ci) {}
+        virtual void leavegame(clientinfo *ci, bool disconnecting = false) {}
+
+        virtual void moved(clientinfo *ci, const vec &oldpos, bool oldclip, const vec &newpos, bool newclip) {}
+        virtual bool canspawn(clientinfo *ci, bool connecting = false) { return true; }
+        virtual void spawned(clientinfo *ci) {}
+        virtual int fragvalue(clientinfo *victim, clientinfo *actor)
+        {
+            if(victim==actor || isteam(victim->team, actor->team)) return -1;
+            return 1;
+        }
+        virtual void died(clientinfo *victim, clientinfo *actor) {}
+        virtual bool canchangeteam(clientinfo *ci, const char *oldteam, const char *newteam) { return true; }
+        virtual void changeteam(clientinfo *ci, const char *oldteam, const char *newteam) {}
+        virtual void initclient(clientinfo *ci, packetbuf &p, bool connecting) {}
+        virtual void update() {}
+        virtual void reset(bool empty) {}
+        virtual void intermission() {}
+        virtual bool hidefrags() { return false; }
+        virtual int getteamscore(const char *team) { return 0; }
+        virtual void getteamscores(vector<teamscore> &scores) {}
+        virtual bool extinfoteam(const char *team, ucharbuf &p) { return false; }
+    };
+
+    #define SERVMODE 1
+    #include "capture.h"
+    #include "ctf.h"
+
+    captureservmode capturemode;
+    ctfservmode ctfmode;
+    servmode *smode = NULL;
 
     bool canspawnitem(int type) { return !m_noitems && (type>=I_SHELLS && type<=I_QUAD && (!m_noammo || type<I_SHELLS || type>I_CARTRIDGES)); }
 
@@ -1222,6 +1222,7 @@ namespace server
                 putint(p, oi->clientnum);
                 putint(p, oi->state.state);
                 putint(p, oi->state.frags);
+                putint(p, oi->state.flags);
                 putint(p, oi->state.quadmillis);
                 sendstate(oi->state, p);
             }
@@ -1247,8 +1248,8 @@ namespace server
     void sendresume(clientinfo *ci)
     {
         gamestate &gs = ci->state;
-        sendf(-1, 1, "ri2i9vi", SV_RESUME, ci->clientnum,
-            gs.state, gs.frags, gs.quadmillis,
+        sendf(-1, 1, "ri3i9vi", SV_RESUME, ci->clientnum,
+            gs.state, gs.frags, gs.flags, gs.quadmillis,
             gs.lifesequence,
             gs.health, gs.maxhealth,
             gs.armour, gs.armourtype,
@@ -1784,6 +1785,50 @@ namespace server
 
     int reserveclients() { return 3; }
 
+    struct gbaninfo
+    {
+        enet_uint32 ip, mask;
+    };
+
+    vector<gbaninfo> gbans;
+
+    void cleargbans()
+    {
+        gbans.setsize(0);
+    }
+
+    bool checkgban(uint ip)
+    {
+        loopv(gbans) if((ip & gbans[i].mask) == gbans[i].ip) return true;
+        return false;
+    }
+
+    void addgban(const char *name)
+    {
+        union { uchar b[sizeof(enet_uint32)]; enet_uint32 i; } ip, mask;
+        ip.i = 0;
+        mask.i = 0;
+        loopi(4)
+        {
+            char *end = NULL;
+            int n = strtol(name, &end, 10);
+            if(!end) break;
+            if(end > name) { ip.b[i] = n; mask.b[i] = 0xFF; }
+            name = end;
+            while(*name && *name++ != '.');
+        }
+        gbaninfo &ban = gbans.add();
+        ban.ip = ip.i;
+        ban.mask = mask.i;
+
+        loopvrev(clients)
+        {
+            clientinfo *ci = clients[i];
+            if(ci->local || ci->privilege >= PRIV_ADMIN) continue;
+            if(checkgban(getclientip(ci->clientnum))) disconnect_client(ci->clientnum, DISC_IPBAN);
+        }
+    }
+        
     int allowconnect(clientinfo *ci, const char *pwd)
     {
         if(ci->local) return DISC_NONE;
@@ -1797,6 +1842,7 @@ namespace server
         if(numclients(-1, false, true)>=maxclients) return DISC_MAXCLIENTS;
         uint ip = getclientip(ci->clientnum);
         loopv(bannedips) if(bannedips[i].ip==ip) return DISC_IPBAN;
+        if(checkgban(ip)) return DISC_IPBAN;
         if(mastermode>=MM_PRIVATE && allowedips.find(ip)<0) return DISC_PRIVATE;
         return DISC_NONE;
     }
@@ -1873,6 +1919,10 @@ namespace server
             authsucceeded(id);
         else if(sscanf(cmd, "chalauth %u %s", &id, val) == 2)
             authchallenged(id, val);
+        else if(!strncmp(cmd, "cleargbans", cmdlen))
+            cleargbans();
+        else if(sscanf(cmd, "addgban %s", val) == 1)
+            addgban(val);
     }
 
     void receivefile(int sender, uchar *data, int len)

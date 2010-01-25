@@ -154,7 +154,6 @@ static float disttoent(octaentities *oc, octaentities *last, const vec &o, const
     }
 
     entintersect(RAY_POLY, mapmodels,
-        if(e.attr3 && (e.triggerstate == TRIGGER_DISAPPEARED || !checktriggertype(e.attr3, TRIG_COLLIDE) || e.triggerstate == TRIGGERED) && (mode&RAY_ENTS)!=RAY_ENTS) continue;
         orient = 0; // FIXME, not set
         if(!mmintersect(e, o, ray, radius, mode, f)) continue;
     );
@@ -204,7 +203,6 @@ static float shadowent(octaentities *oc, octaentities *last, const vec &o, const
     {
         extentity &e = *ents[oc->mapmodels[i]];
         if(!e.inoctanode || &e==t) continue;
-        if(e.attr3 && (e.triggerstate == TRIGGER_DISAPPEARED || !checktriggertype(e.attr3, TRIG_COLLIDE) || e.triggerstate == TRIGGERED)) continue;
         if(!mmintersect(e, o, ray, radius, mode, f)) continue;
         if(f>0 && f<dist) dist = f;
     }
@@ -655,7 +653,7 @@ bool plcollide(physent *d, const vec &dir)    // collide with player or monster
                     break;
             }
             hitplayer = o;
-            if((d->type==ENT_AI || d->type==ENT_INANIMATE) && wall.z>0) d->onplayer = o;
+            game::dynentcollide(d, o, wall);
             return false;
         }
     }
@@ -726,7 +724,7 @@ bool mmcollide(physent *d, const vec &dir, octaentities &oc)               // co
     loopv(oc.mapmodels)
     {
         extentity &e = *ents[oc.mapmodels[i]];
-        if(e.attr3 && e.attr3!=15 && (e.triggerstate == TRIGGER_DISAPPEARED || !checktriggertype(e.attr3, TRIG_COLLIDE) || e.triggerstate == TRIGGERED || (e.triggerstate == TRIGGERING && lastmillis-e.lasttrigger >= 500))) continue;
+        if(e.flags&extentity::F_NOCOLLIDE) continue;
         model *m = loadmodel(NULL, e.attr2);
         if(!m || !m->collide) continue;
         vec center, radius;
@@ -1596,30 +1594,7 @@ void modifyvelocity(physent *pl, bool local, bool water, bool floating, int curt
     if(!floating && pl->physstate == PHYS_FALL) pl->timeinair += curtime;
 
     vec m(0.0f, 0.0f, 0.0f);
-    if(pl->type==ENT_AI)
-    {
-        dynent *d = (dynent *)pl;
-        if(d->rotspeed && d->yaw!=d->targetyaw)
-        {
-            float oldyaw = d->yaw, diff = d->rotspeed*curtime/1000.0f, maxdiff = fabs(d->targetyaw-d->yaw);
-            if(diff >= maxdiff)
-            {
-                d->yaw = d->targetyaw;
-                d->rotspeed = 0;
-            }
-            else d->yaw += (d->targetyaw>d->yaw ? 1 : -1) * min(diff, maxdiff);
-            d->normalize_yaw(d->targetyaw);
-            if(!plcollide(d, vec(0, 0, 0)))
-            {
-                d->yaw = oldyaw;
-                m.x = d->o.x - hitplayer->o.x;
-                m.y = d->o.y - hitplayer->o.y;
-                if(!m.iszero()) m.normalize();
-            }
-        }
-    }
-
-    if(m.iszero() && game::allowmove(pl) && (pl->move || pl->strafe))
+    if(game::allowmove(pl) && (pl->move || pl->strafe))
     {
         vecfromyawpitch(pl->yaw, floating || water || pl->type==ENT_CAMERA ? pl->pitch : 0, pl->move, pl->strafe, m);
 
@@ -1702,8 +1677,6 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     d.mul(secs);
 
     pl->blocked = false;
-    pl->moving = true;
-    pl->onplayer = NULL;
 
     if(floating)                // just apply velocity
     {
@@ -1730,11 +1703,6 @@ bool moveplayer(physent *pl, int moveres, bool local, int curtime)
     }
 
     if(pl->state==CS_ALIVE) updatedynentcache(pl);
-
-    if(!pl->timeinair && pl->physstate >= PHYS_FLOOR && pl->vel.squaredlen() < 1e-4f) pl->moving = false;
-
-    pl->lastmoveattempt = lastmillis;
-    if(pl->o!=oldpos) pl->lastmove = lastmillis;
 
     // automatically apply smooth roll when strafing
 
@@ -2004,7 +1972,6 @@ bool moveplatform(physent *p, const vec &dir)
             physent *d = passengers[i]->d;
             d->o.add(dir);
             d->newpos.add(dir);
-            d->lastmove = lastmillis;
             if(dir.x || dir.y) updatedynentcache(d);
         }
     }
@@ -2016,7 +1983,6 @@ bool moveplatform(physent *p, const vec &dir)
         physent *d = ent->d;
         d->o.add(dir);
         d->newpos.add(dir);
-        d->lastmove = lastmillis;
         if(dir.x || dir.y) updatedynentcache(d);
 
         for(int n = ent->stacks; n>=0; n = collisions[n].next)
@@ -2028,7 +1994,6 @@ bool moveplatform(physent *p, const vec &dir)
 
     p->o.add(dir);
     p->newpos.add(dir);
-    p->lastmove = lastmillis;
     if(dir.x || dir.y) updatedynentcache(p);
 
     return true;

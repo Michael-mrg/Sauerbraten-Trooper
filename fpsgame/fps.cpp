@@ -68,7 +68,7 @@ namespace game
         {
             clearmovables();
             clearmonsters();                 // all monsters back at their spawns for editing
-            resettriggers();
+            entities::resettriggers();
         }
         clearprojectiles();
         clearbouncers();
@@ -261,7 +261,7 @@ namespace game
             if(m_sp)
             {
                 if(slowmosp) checkslowmo();
-                if(m_classicsp) checktriggers();
+                if(m_classicsp) entities::checktriggers();
             }
             else if(cmode) cmode->checkitems(player1);
         }
@@ -522,7 +522,7 @@ namespace game
         loopv(players)
         {
             fpsent *d = players[i];
-            d->frags = 0;
+            d->frags = d->flags = 0;
             d->deaths = 0;
             d->totaldamage = 0;
             d->totalshots = 0;
@@ -591,6 +591,15 @@ namespace game
         else if(waterlevel<0) playsound(material==MAT_LAVA ? S_BURN : S_SPLASH2, d==player1 ? NULL : &d->o);
         if     (floorlevel>0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_JUMP, d); }
         else if(floorlevel<0) { if(d==player1 || d->type!=ENT_PLAYER || ((fpsent *)d)->ai) msgsound(S_LAND, d); }
+    }
+
+    void dynentcollide(physent *d, physent *o, const vec &dir)
+    {
+        switch(d->type)
+        {
+            case ENT_AI: if(dir.z > 0) stackmonster((monster *)d, o); break;
+            case ENT_INANIMATE: if(dir.z > 0) stackmovable((movable *)d, o); break;
+        }
     }
 
     void msgsound(int n, physent *d)

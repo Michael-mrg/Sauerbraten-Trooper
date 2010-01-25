@@ -91,12 +91,26 @@ void getcubevector(cube &c, int d, int x, int y, int z, ivec &p)
         p[i] = edgeget(cubeedge(c, i, v[R[i]], v[C[i]]), v[D[i]]);
 }
 
-void setcubevector(cube &c, int d, int x, int y, int z, ivec &p)
+void setcubevector(cube &c, int d, int x, int y, int z, const ivec &p)
 {
     ivec v(d, x, y, z);
 
     loopi(3)
         edgeset(cubeedge(c, i, v[R[i]], v[C[i]]), v[D[i]], p[i]);
+}
+
+static inline void getcubevector(cube &c, int i, ivec &p)
+{
+    p.x = edgeget(cubeedge(c, 0, (i>>R[0])&1, (i>>C[0])&1), (i>>D[0])&1);
+    p.y = edgeget(cubeedge(c, 1, (i>>R[1])&1, (i>>C[1])&1), (i>>D[1])&1);
+    p.z = edgeget(cubeedge(c, 2, (i>>R[2])&1, (i>>C[2])&1), (i>>D[2])&1);
+}
+
+static inline void setcubevector(cube &c, int i, const ivec &p)
+{
+    edgeset(cubeedge(c, 0, (i>>R[0])&1, (i>>C[0])&1), (i>>D[0])&1, p.x);
+    edgeset(cubeedge(c, 1, (i>>R[1])&1, (i>>C[1])&1), (i>>D[1])&1, p.y);
+    edgeset(cubeedge(c, 2, (i>>R[2])&1, (i>>C[2])&1), (i>>D[2])&1, p.z);
 }
 
 void optiface(uchar *p, cube &c)
@@ -158,45 +172,29 @@ ivec lu;
 int lusize;
 cube &lookupcube(int tx, int ty, int tz, int tsize)
 {
-    int size = worldsize;
-    int x = 0, y = 0, z = 0;
-    cube *c = worldroot;
-    for(;;)
+    tx = clamp(tx, 0, worldsize-1);
+    ty = clamp(ty, 0, worldsize-1);
+    tz = clamp(tz, 0, worldsize-1);
+    int scale = worldscale-1, csize = abs(tsize);
+    cube *c = &worldroot[octastep(tx, ty, tz, scale)];
+    if(!(csize>>scale)) do
     {
-        size >>= 1;
-        ASSERT(size);
-        if(tz>=z+size) { z += size; c += 4; }
-        if(ty>=y+size) { y += size; c += 2; }
-        if(tx>=x+size) { x += size; c += 1; }
-        //if(tsize==size) break;
-        if(abs(tsize)>=size) break;
-        if(c->children==NULL)
+        if(!c->children)
         {
-            //if(!tsize) break;
-            if(tsize<=0) break;
-            subdividecube(*c);
+            if(tsize > 0) do
+            {
+                subdividecube(*c);
+                scale--;
+                c = &c->children[octastep(tx, ty, tz, scale)];
+            } while(!(csize>>scale));
+            break;
         }
-        c = c->children;
-    }
-    lu.x = x;
-    lu.y = y;
-    lu.z = z;
-    lusize = size;
+        scale--;
+        c = &c->children[octastep(tx, ty, tz, scale)];
+    } while(!(csize>>scale));
+    lu = ivec(tx, ty, tz).mask(~0<<scale);
+    lusize = 1<<scale;
     return *c;
-}
-
-cube &neighbourcube(int x, int y, int z, int size, int rsize, int orient)
-{
-    switch(orient)
-    {
-        case O_BOTTOM: z -= size; break;
-        case O_TOP:    z += size; break;
-        case O_BACK:   y -= size; break;
-        case O_FRONT:  y += size; break;
-        case O_LEFT:   x -= size; break;
-        case O_RIGHT:  x += size; break;
-    }
-    return lookupcube(x, y, z, rsize);
 }
 
 int lookupmaterial(const vec &v)
@@ -211,6 +209,38 @@ int lookupmaterial(const vec &v)
         c = &c->children[octastep(o.x, o.y, o.z, scale)];
     }
     return c->ext ? c->ext->material : MAT_AIR;
+}
+
+cube *neighbourstack[32];
+int neighbourdepth = -1;
+
+cube &neighbourcube(cube &c, int orient, int x, int y, int z, int size)
+{
+    ivec n(x, y, z);
+    int dim = dimension(orient);
+    uint diff = n[dim];
+    if(dimcoord(orient)) n[dim] += size; else n[dim] -= size;
+    diff ^= n[dim];
+    if(diff >= uint(worldsize)) { lu = n; lusize = size; return c; }
+    int scale = worldscale;
+    cube *nc = worldroot;
+    if(neighbourdepth >= 0)
+    {
+        scale -= neighbourdepth + 1;
+        diff >>= scale;                        
+        do { scale++; diff >>= 1; } while(diff);
+        nc = neighbourstack[worldscale - scale];
+    }
+    scale--;
+    nc = &nc[octastep(n.x, n.y, n.z, scale)];
+    if(!(size>>scale) && nc->children) do
+    {
+        scale--;
+        nc = &nc->children[octastep(n.x, n.y, n.z, scale)];
+    } while(!(size>>scale) && nc->children);
+    lu = n.mask(~0<<scale);
+    lusize = 1<<scale;
+    return *nc;
 }
 
 ////////// (re)mip //////////
@@ -253,8 +283,8 @@ void forcemip(cube &c)
         int n = i^(j==3 ? 4 : (j==4 ? 3 : j));
         if(!isempty(ch[n])) // breadth first search for cube near vert
         {
-            ivec v, p(i);
-            getcubevector(ch[n], 2, p.x, p.y, p.z, v);
+            ivec v;
+            getcubevector(ch[n], i, v);
 
             loopk(3) // adjust vert to parent size
             {
@@ -263,7 +293,7 @@ void forcemip(cube &c)
                 v[k] >>= 1;
             }
 
-            setcubevector(c, 2, p.x, p.y, p.z, v);
+            setcubevector(c, i, v);
             break;
         }
     }
@@ -314,8 +344,7 @@ bool subdividecube(cube &c, bool fullcheck, bool brighten)
     ivec v[8];
     loopi(8)
     {
-        ivec p(i);
-        getcubevector(c, 2, p.x, p.y, p.z, v[i]);
+        getcubevector(c, i, v[i]);
         v[i].mul(2);
         if(mat!=MAT_AIR) ext(ch[i]).material = mat;
     }
@@ -353,11 +382,8 @@ bool subdividecube(cube &c, bool fullcheck, bool brighten)
             ch[i].texture[j] = c.texture[j];
             loop(y, 2) loop(x, 2) // assign child edges
             {
-                int ce = e[x+o[R[d]]][y+o[C[d]]];
-                if(o[D[d]]) ce -= 8;
-                ce = min(max(ce, 0), 8);
-                uchar &f = cubeedge(ch[i], d, x, y);
-                edgeset(f, z, ce);
+                int ce = clamp(e[x+((i>>R[d])&1)][y+((i>>C[d])&1)] - ((i>>D[d])&1)*8, 0, 8);
+                edgeset(cubeedge(ch[i], d, x, y), z, ce);
             }
         }
     }
@@ -506,14 +532,9 @@ void remip_()
 
 COMMANDN(remip, remip_, "");
 
-uchar &edgelookup(cube &c, const ivec &p, int dim)
+static inline int edgeval(cube &c, const ivec &p, int dim, int coord)
 {
-   return c.edges[dim*4 +(p[C[dim]]>>3)*2 +(p[R[dim]]>>3)];
-}
-
-int edgeval(cube &c, const ivec &p, int dim, int coord)
-{
-    return edgeget(edgelookup(c,p,dim), coord);
+    return edgeget(cubeedge(c, dim, p[R[dim]]>>3, p[C[dim]]>>3), coord);
 }
 
 void genvertp(cube &c, ivec &p1, ivec &p2, ivec &p3, plane &pl)
@@ -924,7 +945,7 @@ bool visibleface(cube &c, int orient, int x, int y, int z, int size, uchar mat, 
         if(collapsedface(cfe)) return false;
     }
 
-    cube &o = neighbourcube(x, y, z, size, -size, orient);
+    cube &o = neighbourcube(c, orient, x, y, z, size);
     if(&o==&c) return false;
 
     if(lusize > size || (lusize == size && !o.children))
@@ -969,7 +990,7 @@ int visibletris(cube &c, int orient, int x, int y, int z, int size)
 
     if(collapsedface(faceedges(c, orient))) return 0;
 
-    cube &o = neighbourcube(x, y, z, size, -size, orient);
+    cube &o = neighbourcube(c, orient, x, y, z, size);
     if(&o==&c) return 0;
 
     ivec vo(x, y, z);
@@ -1261,7 +1282,7 @@ void mincubeface(cube &cu, int orient, const ivec &o, int size, const mergeinfo 
 
 bool mincubeface(cube &cu, int orient, const ivec &co, int size, mergeinfo &orig)
 {
-    cube &nc = neighbourcube(co.x, co.y, co.z, size, -size, orient);
+    cube &nc = neighbourcube(cu, orient, co.x, co.y, co.z, size);
     mergeinfo mincf;
     mincf.u1 = orig.u2;
     mincf.u2 = orig.u1;
@@ -1388,6 +1409,7 @@ static int genmergeprogress = 0;
 void genmergeinfo(cube *c = worldroot, const ivec &o = ivec(0, 0, 0), int size = worldsize>>1)
 {
     if((genmergeprogress++&0xFFF)==0) renderprogress(float(genmergeprogress)/allocnodes, "merging surfaces...");
+    neighbourstack[++neighbourdepth] = c;
     loopi(8)
     {
         ivec co(i, o.x, o.y, o.z, size);
@@ -1427,6 +1449,7 @@ void genmergeinfo(cube *c = worldroot, const ivec &o = ivec(0, 0, 0), int size =
         }
 
     }
+    --neighbourdepth;
 }
 
 void genmergedverts(cube &cu, int orient, const ivec &co, int size, const mergeinfo &m, vvec *vv, plane *p)

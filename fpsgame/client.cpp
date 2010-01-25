@@ -369,6 +369,7 @@ namespace game
     ICOMMANDS("m_regencapture", "i", (int *mode), { int gamemode = *mode; intret(m_regencapture); });
     ICOMMANDS("m_ctf", "i", (int *mode), { int gamemode = *mode; intret(m_ctf); });
     ICOMMANDS("m_protect", "i", (int *mode), { int gamemode = *mode; intret(m_protect); });
+    ICOMMANDS("m_hold", "i", (int *mode), { int gamemode = *mode; intret(m_hold); });
     ICOMMANDS("m_teammode", "i", (int *mode), { int gamemode = *mode; intret(m_teammode); });
     ICOMMANDS("m_demo", "i", (int *mode), { int gamemode = *mode; intret(m_demo); });
     ICOMMANDS("m_edit", "i", (int *mode), { int gamemode = *mode; intret(m_edit); });
@@ -819,6 +820,7 @@ namespace game
             if(d==player1) getint(p);
             else d->state = getint(p);
             d->frags = getint(p);
+            d->flags = getint(p);
             if(d==player1) getint(p);
             else d->quadmillis = getint(p);
         }

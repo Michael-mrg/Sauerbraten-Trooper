@@ -1,6 +1,8 @@
 // monster.h: implements AI for single player monsters, currently client only
 #include "game.h"
 
+extern int physsteps;
+
 namespace game
 {
     static vector<int> teleports;
@@ -44,8 +46,13 @@ namespace game
         int trigger;                        // millis at which transition to another monsterstate takes place
         vec attacktarget;                   // delayed attacks
         int anger;                          // how many times already hit by fellow monster
+        physent *stacked;
+        vec stackpos;
     
-        monster(int _type, int _yaw, int _tag, int _state, int _trigger, int _move) : monsterstate(_state), tag(_tag)
+        monster(int _type, int _yaw, int _tag, int _state, int _trigger, int _move) :
+            monsterstate(_state), tag(_tag),
+            stacked(NULL),
+            stackpos(0, 0, 0)
         {
             type = ENT_AI;
             respawn();
@@ -79,7 +86,13 @@ namespace game
             anger = 0;
             copystring(name, t.name);
         }
-        
+       
+        void normalize_yaw(float angle)
+        {
+            while(yaw<angle-180.0f) yaw += 360.0f;
+            while(yaw>angle+180.0f) yaw -= 360.0f;
+        }
+ 
         // monster AI is sequenced using transitions: they are in a particular state where
         // they execute a particular behaviour until the trigger time is hit, and then they
         // reevaluate their situation based on the current state, the environment etc., and
@@ -201,7 +214,7 @@ namespace game
                     
             }
 
-            if(move || moving || (onplayer && (onplayer->state!=CS_ALIVE || lastmoveattempt <= onplayer->lastmove)))
+            if(move || maymove() || (stacked && (stacked->state!=CS_ALIVE || stackpos != stacked->o)))
             {
                 vec pos = feetpos();
                 loopv(teleports) // equivalent of player entity touch, but only teleports are used
@@ -211,6 +224,7 @@ namespace game
                     if(dist<16) entities::teleport(teleports[i], this);
                 }
 
+                if(physsteps > 0) stacked = NULL;
                 moveplayer(this, 1, true);        // use physics to move monster
             }
         }
@@ -253,6 +267,12 @@ namespace game
             }
         }
     };
+
+    void stackmonster(monster *d, physent *o)
+    {
+        d->stacked = o;
+        d->stackpos = o->o;
+    }
 
     int nummonsters(int tag, int state)
     {

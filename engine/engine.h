@@ -220,7 +220,7 @@ extern void render3dbox(vec &o, float tofloor, float toceil, float xradius, floa
 extern cube *newcubes(uint face = F_EMPTY);
 extern cubeext *newcubeext(cube &c);
 extern void getcubevector(cube &c, int d, int x, int y, int z, ivec &p);
-extern void setcubevector(cube &c, int d, int x, int y, int z, ivec &p);
+extern void setcubevector(cube &c, int d, int x, int y, int z, const ivec &p);
 extern int familysize(cube &c);
 extern void freeocta(cube *c);
 extern void discardchildren(cube &c);
@@ -228,7 +228,9 @@ extern void optiface(uchar *p, cube &c);
 extern void validatec(cube *c, int size);
 extern bool isvalidcube(cube &c);
 extern cube &lookupcube(int tx, int ty, int tz, int tsize = 0);
-extern cube &neighbourcube(int x, int y, int z, int size, int rsize, int orient);
+extern cube *neighbourstack[32];
+extern int neighbourdepth;
+extern cube &neighbourcube(cube &c, int orient, int x, int y, int z, int size);
 extern void newclipplanes(cube &c);
 extern void freeclipplanes(cube &c);
 extern void forcemip(cube &c);
@@ -481,23 +483,6 @@ extern void rotatebb(vec &center, vec &radius, int yaw);
 extern float shadowray(const vec &o, const vec &ray, float radius, int mode, extentity *t = NULL);
 
 // world
-enum
-{
-    TRIG_COLLIDE    = 1<<0,
-    TRIG_TOGGLE     = 1<<1,
-    TRIG_ONCE       = 0<<2,
-    TRIG_MANY       = 1<<2,
-    TRIG_DISAPPEAR  = 1<<3,
-    TRIG_AUTO_RESET = 1<<4,
-    TRIG_RUMBLE     = 1<<5,
-    TRIG_LOCKED     = 1<<6
-};
-
-#define NUMTRIGGERTYPES 16
-
-extern int triggertypes[NUMTRIGGERTYPES];
-
-#define checktriggertype(type, flag) (triggertypes[(type) & (NUMTRIGGERTYPES-1)] & (flag))
 
 extern vector<int> outsideents;
 
