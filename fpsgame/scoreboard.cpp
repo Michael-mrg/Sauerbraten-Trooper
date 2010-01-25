@@ -399,19 +399,19 @@ namespace game
             {
                 // There's probably an easier way to get vertical columns.
                 int cols = m_teammode ? 3 : 2;
-                int stride = (int)(len / cols + 1);
                 #define loopspecgroup(o, f, m, b) \
-                    for(int i = f; i < m; i ++) \
+                    for(int i = f; i < f+m; i ++) \
                     { \
                         if(i >= len) break; \
                         fpsent *o = spectators[i]; \
                         b; \
-                    }    
+                    }
                 g.pushlist();
+                int index = 0;
                 for(int c = 0; c < cols; c ++)
                 {
-                    int s = c * stride;
-                    if(len <= s) break;
+                    int stride = ceil((float)(len - index) / (cols - c));
+                    if(len <= index) break;
                     g.pushlist();
                     g.pushlist();
 
@@ -419,7 +419,7 @@ namespace game
                     g.text("spectator", 0xFFFF80, "server");
                     char *name = (char *)calloc(250, 1);
                     char *clan = (char *)calloc(250, 1);
-                    loopspecgroup(o, s, s + stride, {
+                    loopspecgroup(o, index, stride, {
                         g.pushlist();
                         int status = 0xFFFFDD;
                         if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
@@ -449,7 +449,7 @@ namespace game
                     g.space(1);
                     g.pushlist();
                     g.text("cn", 0xFFFF80);
-                    loopspecgroup(o, s, s + stride, {
+                    loopspecgroup(o, index, stride, {
                         g.textf("%d", 0xFFFFDD, NULL, o->clientnum);
                     });
                     g.poplist();
@@ -459,7 +459,7 @@ namespace game
                         g.space(2);
                         g.pushlist();
                         g.text("ping", 0xFFFF80);
-                        loopspecgroup(o, s, s + stride, {
+                        loopspecgroup(o, index, stride, {
                             if(o->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
                             else g.textf("%d", 0xFFFFDD, NULL, o->ping);
                         });
@@ -470,6 +470,8 @@ namespace game
                         g.space(3);
                     g.poplist();
                     g.poplist();
+
+                    index += stride;
                 }
                 g.poplist();
             }
