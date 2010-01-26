@@ -1,17 +1,6 @@
 // creation of scoreboard
 #include "game.h"
 
-size_t strlcpy(char *d, const char *s, size_t size)
-{
-    if(size <= 0) return -1;
-    size_t len = strlen(s);
-    if(len >= size) len = size - 1;
-    if(len <= 0) return -1;
-    memcpy(d, s, len);
-    d[len] = '\0';
-    return len;
-}
-
 namespace game
 {
     VARP(scoreboard2d, 0, 1, 1);
@@ -21,95 +10,7 @@ namespace game
     VARP(showspectators, 0, 1, 1);
     VARP(highlightscore, 0, 1, 1);
     VARP(showconnecting, 0, 0, 1);
-    VARP(colorclans, 0, 1, 1);
     VARP(showfrags, 0, 1, 1);
-
-    int createname(const char *name, char *gclan, char *gname, bool ind) {
-        // Automatic colors go here
-        int colors[] = {0xFFD300, 0x787EB7, 0x759536, 0x6B8775, 0xF5F5B3, 0xFB000D, 0x61D7A4, 0x532881, 0xF08BCB, 0xDC9630, 0xFEFCFF, 0x99A1DE};
-        int colorsCount = 12;
-        // Custom colors go here
-        int customColors[] =  { 0x679FD2 };
-        const char *customNames[] = { "mVa", 0 };
-
-        if(strchr(name, ' ') != NULL) // Fail on bot [128]
-            return -1;
-
-        int clannamestart = 0;
-        int clannameend = 0;
-        int clantagstart = 0;
-        int clantagend = 0;
-        int realnamestart = 0;
-        int realnameend = 0;
-        int len = strlen(name);
-        char clanname[250], realname[250];
-        const char *startchars = "[|{}=<(/\\.";
-        const char *endchars = "]|{}=>):/\\.";
-
-        while(strchr(startchars, name[clannamestart]) != NULL) // Move clannamestart up
-            clannamestart ++;
-        if(clannamestart == 0) {
-            int p = len-1;
-            while(strchr(endchars, name[p]) != NULL) // Check for name|tag|
-                p --;
-            if(p != len-1) { // name|tag| found
-                clannameend = len;
-                clannamestart = p;
-                while(strchr(startchars, name[clannamestart]) == NULL) // Move clannamestart back
-                    clannamestart --;
-                realnamestart = 0;
-                realnameend = clannamestart;
-                clannamestart ++;
-                while(strchr(startchars, name[realnameend]) != NULL)
-                    realnameend --;
-                realnameend ++;
-            }
-        }
-        if(clannameend == 0) { // name|tag| not found, look for |tag|name
-            clannameend = clannamestart;
-            while(strchr(endchars, name[clannameend]) == NULL)
-                clannameend ++;
-            clantagend = clannameend;
-            while(strchr(endchars, name[clantagend]) != NULL)
-                clantagend ++;
-            realnamestart = clantagend;
-            realnameend = len;
-        }
-        if(clannameend == len) {
-            clannameend = 0;
-            realnamestart = 0;
-        }
-        if(realnameend == len && clannamestart == 0 && len < clannameend+realnamestart) {
-            int a = clannameend, b = clannamestart;
-            clannameend = realnameend;
-            clannamestart = realnamestart;
-            realnameend = a;
-            realnamestart = b;
-        }
-        // TODO: realnamestart > strlen(name) ?
-        if(realnamestart > strlen(name) || strlcpy(clanname, name+clannamestart, clannameend-clannamestart+1) == -1 ||
-           strlcpy(realname, name+realnamestart, realnameend+1) == -1 || !strlen(clanname) || !strlen(realname))
-            return -1;
-
-        // Pick a color
-        int color = 0xFFFFFF;
-        int i = 0;
-        while(!ind && customNames[i] && strcmp(customNames[i], clanname))
-            i ++;
-        int c = 0;
-        if(!ind && customNames[i])
-            color = customColors[i];
-        else
-        {
-            for(int i = 1; i < strlen(clanname); i ++)
-                c += clanname[i] ^ clanname[i-1];
-            c %= colorsCount;
-            color = colors[c];
-        }
-        strcpy(gclan, clanname);
-        strcpy(gname, realname);
-        return ind ? c : color;
-    }
 
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -340,9 +241,6 @@ namespace game
             g.pushlist();
             g.text("name", fgcolor);
             g.strut(10);
-
-            char *name = (char *)calloc(250, 1);
-            char *clan = (char *)calloc(250, 1);
             loopscoregroup(o, 
             {
                 int status = o->state!=CS_DEAD ? 0xFFFFDD : 0x606060;
@@ -351,25 +249,8 @@ namespace game
                     status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
                     if(o->state==CS_DEAD) status = (status>>1)&0x7F7F7F;
                 }
-                g.pushlist();
-                if(colorclans)
-                {
-                    int color = createname(colornamenc(o), clan, name);
-                    if(color != -1)
-                    {
-                        g.text(clan, color);
-                        g.text(" ", 0xFFFFFF);
-                        g.text(name, status);
-                    }
-                    else
-                        g.text(colornamenc(o), status);
-                }
-                else
-                     g.text(colornamenc(o), status);
-                g.poplist();
+                g.text(colorname(o), status);
             });
-            free(name);
-            free(clan);
             g.poplist();
 
             if(showclientnum || player1->privilege>=PRIV_MASTER)
@@ -419,8 +300,6 @@ namespace game
 
                     g.pushlist();
                     g.text("spectator", 0xFFFF80, "server");
-                    char *name = (char *)calloc(250, 1);
-                    char *clan = (char *)calloc(250, 1);
                     loopspecgroup(o, index, stride, {
                         g.pushlist();
                         int status = 0xFFFFDD;
@@ -428,24 +307,9 @@ namespace game
                         if(o==player1 && highlightscore)
                             g.background(0x808080, 3);
                         g.text("", 0xFFFFFF, "spectator");
-                        if(colorclans)
-                        {
-                            int color = createname(colornamenc(o), clan, name);
-                            if(color != -1)
-                            {
-                                g.text(clan, color);
-                                g.text(" ", 0xFFFFFF);
-                                g.text(name, status);
-                            }
-                            else
-                                g.text(colornamenc(o), status);
-                        }
-                        else
-                            g.text(colornamenc(o), status);
+                        g.text(colorname(o), status);
                         g.poplist();
                     });
-                    free(name);
-                    free(clan);
                     g.poplist();
 
                     g.space(1);
@@ -495,7 +359,7 @@ namespace game
                         g.pushlist();
                         g.background(0x808080);
                     }
-                    g.text(colorname(o), status); // FIXME: colorclans
+                    g.text(colorname(o), status);
                     if(o==player1 && highlightscore) g.poplist();
                     if(i+1<spectators.length() && (i+1)%3) g.space(1);
                     else g.poplist();

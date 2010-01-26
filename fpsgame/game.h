@@ -724,7 +724,7 @@ namespace game
     extern void avoidweapons(ai::avoidset &obstacles, float radius);
 
     // scoreboard
-    extern int createname(const char *name, char *gclan, char *gname, bool ind=false);
+    extern int createname(const char *name, char *gclan, char *gname);
     extern void showscores(bool on);
     extern int getscores(vector<int> &v);
     extern void getbestplayers(vector<fpsent *> &best);

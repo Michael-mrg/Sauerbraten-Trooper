@@ -1,5 +1,16 @@
 #include "game.h"
 
+size_t strlcpy(char *d, const char *s, size_t size)
+{
+    if(size <= 0) return -1;
+    size_t len = strlen(s);
+    if(len >= size) len = size - 1;
+    if(len <= 0) return -1;
+    memcpy(d, s, len);
+    d[len] = '\0';
+    return len;
+}
+
 namespace game
 {
     bool intermission = false;
@@ -628,6 +639,84 @@ namespace game
     }
 
     VARP(colornames, 0, 1, 1);
+    int createname(const char *name, char *gclan, char *gname) {
+        int colorsCount = 12;
+        const char *customNames[] = { "mVa", 0 };
+        
+        int clannamestart = 0;
+        int clannameend = 0;
+        int clantagstart = 0;
+        int clantagend = 0;
+        int realnamestart = 0;
+        int realnameend = 0;
+        int len = strlen(name);
+        char clanname[250], realname[250];
+        const char *startchars = "[|{}=<(/\\.";
+        const char *endchars = "]|{}=>):/\\.";
+        
+        while(strchr(startchars, name[clannamestart]) != NULL) // Move clannamestart up
+            clannamestart ++;
+        if(clannamestart == 0) {
+            int p = len-1;
+            while(strchr(endchars, name[p]) != NULL) // Check for name|tag|
+                p --;
+            if(p != len-1) { // name|tag| found
+                clannameend = p+1;
+                clannamestart = p;
+                while(clannamestart >= 0 && strchr(startchars, name[clannamestart]) == NULL) // Move clannamestart back
+                    clannamestart --;
+                realnamestart = 0;
+                realnameend = clannamestart;
+                clannamestart ++;
+                while(strchr(startchars, name[realnameend]) != NULL)
+                    realnameend --;
+                realnameend ++;
+            }
+        }
+        if(clannameend == 0) { // name|tag| not found, look for |tag|name
+            clannameend = clannamestart;
+            while(strchr(endchars, name[clannameend]) == NULL)
+                clannameend ++;
+            clantagend = clannameend;
+            while(strchr(endchars, name[clantagend]) != NULL)
+                clantagend ++;
+            realnamestart = clantagend;
+            realnameend = len;
+        }
+        if(clannameend == len) {
+            clannameend = 0;
+            realnamestart = 0;
+        }
+        if(realnameend == len && clannamestart == 0 && len < clannameend+realnamestart) {
+            int a = clannameend, b = clannamestart;
+            clannameend = realnameend;
+            clannamestart = realnamestart;
+            realnameend = a;
+            realnamestart = b;
+        }
+        
+        // TODO: realnamestart > strlen(name) ?
+        if(realnamestart > strlen(name) || strlcpy(clanname, name+clannamestart, clannameend-clannamestart+1) == -1 ||
+           strlcpy(realname, name+realnamestart, realnameend+1) == -1 || !strlen(clanname) || !strlen(realname))
+            return -1;
+        
+        int i = 0;
+        while(customNames[i] && strcmp(customNames[i], clanname))
+            i ++;
+        int c = 0;
+        if(customNames[i])
+            c = colorsCount + i;
+        else
+        {
+            for(int i = 1; i < strlen(clanname); i ++)
+                c += clanname[i] ^ clanname[i-1];
+            c %= colorsCount;
+        }
+        strcpy(gclan, clanname);
+        strcpy(gname, realname);
+        return c;
+    }
+    
     const char *colornamenc(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
@@ -660,11 +749,10 @@ namespace game
             {
                 char *gname = (char *)calloc(250, 1);
                 char *gclan = (char *)calloc(250, 1);
-                int color = createname(colornamenc(d, name, prefix), gclan, gname, true);
-                if(color != -1)
-                    formatstring(cname[cidx])("\fs\e%x%s\fr %s", (color % 12), gclan, gname);
-                else
+                int color = createname(colornamenc(d, name, prefix), gclan, gname);
+                if(color == -1)
                     return name;
+                formatstring(cname[cidx])("\fs\e%x%s\fr %s", (color % 13), gclan, gname);
                 free(gname);
                 free(gclan);
             }

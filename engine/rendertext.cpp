@@ -158,6 +158,7 @@ static void text_color2(char c, char *stack, int size, int &sp, bvec color, int 
         case '9': color = bvec(220, 150,  48); break;
         case 'a': color = bvec(254, 252, 255); break;
         case 'b': color = bvec(153, 161, 222); break;
+        case 'c': color = bvec(103, 159, 210); break;
     }
     glColor4ub(color.x, color.y, color.z, a);
 }
