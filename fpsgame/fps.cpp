@@ -658,7 +658,7 @@ namespace game
             clannamestart ++;
         if(clannamestart == 0) {
             int p = len-1;
-            while(strchr(endchars, name[p]) != NULL) // Check for name|tag|
+            while(p >= 0 && strchr(endchars, name[p]) != NULL) // Check for name|tag|
                 p --;
             if(p != len-1) { // name|tag| found
                 clannameend = p+1;
@@ -731,36 +731,35 @@ namespace game
     const char *colornamec(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
-        static string cname[3];
-        static int cidx = 0;
-        cidx = (cidx+1)%3;
+        if(d->colored_name && !strcmp(d->name_cache, name))
+            return d->colored_name;
+
+        strcpy(d->name_cache, name);
         if(d->aitype == AI_NONE)
         {
             bool isdup = false;
             loopv(players)
-            if(d!=players[i] && !strcmp(name, players[i]->name))
-            {
-                isdup = true;
-                break;
-            }
+                if(d!=players[i] && !strcmp(name, players[i]->name))
+                {
+                    isdup = true;
+                    break;
+                }
             if(isdup)
-                formatstring(cname[cidx])("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
+                formatstring(d->colored_name)("%s%s \fs\f5(%d)\fr", prefix, name, d->clientnum);
             else
             {
-                char *gname = (char *)calloc(250, 1);
-                char *gclan = (char *)calloc(250, 1);
+                string gname, gclan;
                 int color = createname(colornamenc(d, name, prefix), gclan, gname);
                 if(color == -1)
-                    return name;
-                formatstring(cname[cidx])("\fs\e%x%s\fr %s", (color % 13), gclan, gname);
-                free(gname);
-                free(gclan);
+                    strcpy(d->colored_name, name);
+                else
+                    formatstring(d->colored_name)("\fs\e%x%s\fr %s", (color % 13), gclan, gname);
             }
         }
         else
-            formatstring(cname[cidx])("%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
-        return cname[cidx];
-    }
+            formatstring(d->colored_name)("%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
+        return d->colored_name;
+}
     
     const char *colorname(fpsent *d, const char *name, const char *prefix)
     {
