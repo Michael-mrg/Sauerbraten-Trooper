@@ -402,6 +402,7 @@ void gl_checkextensions()
                 //if(osversion<0x1050) ??
                 apple_glsldepth_bug = 1;
 #endif
+                if(apple_glsldepth_bug) conoutf(CON_WARN, "WARNING: Using Apple GLSL depth bug workaround. (use \"/apple_glsldepth_bug 0\" to disable if unnecessary");
             }
         }
 
@@ -412,6 +413,7 @@ void gl_checkextensions()
         if(osversion>=0x1050) // fixed in 1055 for some hardware.. but not all..
         {
             apple_ff_bug = 1;
+            conoutf(CON_WARN, "WARNING: Using Leopard ARB_position_invariant bug workaround. (use \"/apple_ff_bug 0\" to disable if unnecessary)");
         }
 #endif
 
@@ -613,6 +615,7 @@ void gl_init(int w, int h, int bpp, int depth, int fsaa)
         renderpath = R_FIXEDFUNCTION;
         conoutf(CON_INIT, "Rendering using the OpenGL fixed-function path.");
         if(ati_texgen_bug) conoutf(CON_WARN, "WARNING: Using ATI texgen bug workaround. (use \"/ati_texgen_bug 0\" to disable if unnecessary)");
+        if(nvidia_texgen_bug) conoutf(CON_WARN, "WARNING: Using NVIDIA texgen bug workaround. (use \"/nvidia_texgen_bug 0\" to disable if unnecessary)");
     }
     else
     {
@@ -714,14 +717,13 @@ void computezoom()
     }
 }
 
-FVARP(zoomsens, 1e-3f, 1, 100);
+FVARP(zoomsens, 1e-3f, 1, 1000);
+FVARP(zoomaccel, 0, 0, 1000);
 VARP(zoomautosens, 0, 1, 1);
 FVARP(sensitivity, 1e-3f, 3, 1000);
 FVARP(sensitivityscale, 1e-3f, 1, 1000);
 VARP(invmouse, 0, 0, 1);
 FVARP(mouseaccel, 0, 0, 1000);
-FVARP(mouseaccelmax, 0, 0, 1000);
-FVARP(mouseaccelrate, 0, 5, 10000);
  
 VAR(thirdperson, 0, 0, 2);
 FVAR(thirdpersondistance, 0, 20, 1000);
@@ -740,20 +742,22 @@ void fixcamerarange()
 
 void mousemove(int dx, int dy)
 {
-    float cursens = sensitivity;
+    float cursens = sensitivity, curaccel = mouseaccel;
     if(zoom)
     {
-        if(zoomautosens) cursens = float(sensitivity*zoomfov)/fov;
-        else cursens = zoomsens;
+        if(zoomautosens) 
+        {
+            cursens = float(sensitivity*zoomfov)/fov;
+            curaccel = float(mouseaccel*zoomfov)/fov;
+        }
+        else 
+        {
+            cursens = zoomsens;
+            curaccel = zoomaccel;
+        }
     }
+    if(curaccel && curtime && (dx || dy)) cursens += curaccel * sqrtf(dx*dx + dy*dy)/curtime;
     cursens /= 33.0f*sensitivityscale;
-    if(mouseaccel && mouseaccelrate && curtime && (dx || dy))
-    {
-        float dist = (dx*dx + dy*dy)/mouseaccelrate,
-              accel = 1 + pow(dist/curtime, mouseaccel)/dist;
-        if(mouseaccelmax) accel = min(accel, mouseaccelmax);
-        cursens *= accel;
-    }
     camera1->yaw += dx*cursens;
     camera1->pitch -= dy*cursens*(invmouse ? -1 : 1);
     fixcamerarange();
@@ -1913,11 +1917,7 @@ void gl_drawhud(int w, int h)
             getfps(nextfps[0], nextfps[1], nextfps[2]);
             loopi(3) if(prevfps[i]==curfps[i]) curfps[i] = nextfps[i];
             if(showfpsrange) draw_textf("fps %d+%d-%d", w*3-7*FONTH, h*3-FONTH*3/2, curfps[0], curfps[1], curfps[2]);
-            else draw_textf("fps %d", w*3-5*FONTH, h*3-FONTH*3/2, curfps[0]);
-
-            game::rendertimeleft(w, h, FONTH);
-            game::renderscorehud(w, h, FONTH);
-            game::renderpinghud(w, h, FONTH);
+            else draw_textf("fps %d", w*3-5*FONTH, h*3-100, curfps[0]);
 
             if(editmode || showeditstats)
             {

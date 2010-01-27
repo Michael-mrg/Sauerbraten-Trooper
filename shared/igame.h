@@ -29,7 +29,6 @@ namespace game
 
     extern void gamedisconnect(bool cleanup);
     extern void parsepacketclient(int chan, packetbuf &p);
-    extern void recordpacket(int chan, uchar *data, int len);
     extern void connectattempt(const char *name, const char *password, const ENetAddress &address);
     extern void connectfail();
     extern void gameconnect(bool _remote);
@@ -63,9 +62,6 @@ namespace game
     extern void preload();
     extern float abovegameplayhud();
     extern void gameplayhud(int w, int h);
-    extern void renderpinghud(int w, int h, int fonth);
-    extern void rendertimeleft(int w, int h, int fonth);
-    extern void renderscorehud(int w, int h, int fonth);
     extern bool canjump();
     extern bool allowmove(physent *d);
     extern void doattack(bool on);

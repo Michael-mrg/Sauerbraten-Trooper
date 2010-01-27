@@ -471,7 +471,6 @@ struct fpsent : dynent, fpsstate
     int smoothmillis;
 
     string name, team, info;
-    char *colored_name, *name_cache;
     int playermodel;
     ai::aiinfo *ai;
     int ownernum, lastnode;
@@ -481,8 +480,6 @@ struct fpsent : dynent, fpsstate
     fpsent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1), attackchan(-1), idlesound(-1), idlechan(-1), frags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1), muzzle(-1, -1, -1)
     {
         name[0] = team[0] = info[0] = 0;
-        name_cache = (char *)calloc(30, 1);
-        colored_name = (char *)calloc(30, 1);
         respawn();
     }
     ~fpsent()
@@ -491,8 +488,6 @@ struct fpsent : dynent, fpsstate
         if(attackchan >= 0) stopsound(attacksound, attackchan);
         if(idlechan >= 0) stopsound(idlesound, idlechan);
         if(ai) delete ai;
-        free(colored_name);
-        free(name_cache);
     }
 
     void hitpush(int damage, const vec &dir, fpsent *actor, int gun)
@@ -607,7 +602,6 @@ namespace game
     extern string clientmap;
     extern int minremain;
     extern bool intermission;
-    extern int maptimeleft;
     extern int maptime, maprealtime;
     extern fpsent *player1;
     extern vector<fpsent *> players, clients;
@@ -620,8 +614,6 @@ namespace game
     extern bool clientoption(const char *arg);
     extern fpsent *getclient(int cn);
     extern fpsent *newclient(int cn);
-    extern const char *colornamenc(fpsent *d, const char *name = NULL, const char *prefix = "");
-    extern const char *colornamec(fpsent *d, const char *name = NULL, const char *prefix = "");
     extern const char *colorname(fpsent *d, const char *name = NULL, const char *prefix = "");
     extern fpsent *pointatplayer();
     extern fpsent *hudplayer();
@@ -730,7 +722,6 @@ namespace game
 
     // scoreboard
     extern void showscores(bool on);
-    extern int getscores(vector<int> &v);
     extern void getbestplayers(vector<fpsent *> &best);
     extern void getbestteams(vector<const char *> &best);
 

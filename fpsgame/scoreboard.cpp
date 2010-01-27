@@ -10,7 +10,6 @@ namespace game
     VARP(showspectators, 0, 1, 1);
     VARP(highlightscore, 0, 1, 1);
     VARP(showconnecting, 0, 0, 1);
-    VARP(showfrags, 0, 1, 1);
 
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -184,26 +183,12 @@ namespace game
                 g.pushlist(); // horizontal
             }
 
-            if(showfrags)
+            if(!cmode || !cmode->hidefrags())
             { 
                 g.pushlist();
-                g.strut(3);
-                g.text("K", fgcolor);
-                loopv(sg.players)
-                {
-                    fpsent *o = sg.players[i];
-                    g.textf("%d", 0xFFFFDD, NULL, o->frags);
-                }
-                g.poplist();
-
-                g.pushlist();
-                g.strut(5);
-                g.text("D", fgcolor);
-                loopv(sg.players)
-                {
-                    fpsent *o = sg.players[i];
-                    g.textf("%d", 0xFFFFDD, NULL, o->deaths);
-                }
+                g.strut(7);
+                g.text("frags", fgcolor);
+                loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->frags));
                 g.poplist();
             }
 
@@ -275,70 +260,35 @@ namespace game
             else g.poplist(); // horizontal
         }
         
-        int len = spectators.length();
-        if(showspectators && len)
+        if(showspectators && spectators.length())
         {
             if(showclientnum || player1->privilege>=PRIV_MASTER)
             {
-                // There's probably an easier way to get vertical columns.
-                int cols = m_teammode ? 3 : 2;
-                #define loopspecgroup(o, f, m, b) \
-                    for(int i = f; i < f+m; i ++) \
-                    { \
-                        if(i >= len) break; \
-                        fpsent *o = spectators[i]; \
-                        b; \
-                    }
                 g.pushlist();
-                int index = 0;
-                for(int c = 0; c < cols; c ++)
+                
+                g.pushlist();
+                g.text("spectator", 0xFFFF80, "server");
+                loopv(spectators) 
                 {
-                    int stride = ceil((float)(len - index) / (cols - c));
-                    if(len <= index) break;
-                    g.pushlist();
-                    g.pushlist();
-
-                    g.pushlist();
-                    g.text("spectator", 0xFFFF80, "server");
-                    loopspecgroup(o, index, stride, {
-                        g.pushlist();
-                        int status = 0xFFFFDD;
-                        if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
-                        if(o==player1 && highlightscore)
-                            g.background(0x808080, 3);
-                        g.text("", 0xFFFFFF, "spectator");
-                        g.text(colorname(o), status);
-                        g.poplist();
-                    });
-                    g.poplist();
-
-                    g.space(1);
-                    g.pushlist();
-                    g.text("cn", 0xFFFF80);
-                    loopspecgroup(o, index, stride, {
-                        g.textf("%d", 0xFFFFDD, NULL, o->clientnum);
-                    });
-                    g.poplist();
-
-                    if(showping)
+                    fpsent *o = spectators[i];
+                    int status = 0xFFFFDD;
+                    if(o->privilege) status = o->privilege>=PRIV_ADMIN ? 0xFF8000 : 0x40FF80;
+                    if(o==player1 && highlightscore)
                     {
-                        g.space(2);
                         g.pushlist();
-                        g.text("ping", 0xFFFF80);
-                        loopspecgroup(o, index, stride, {
-                            if(o->state==CS_LAGGED) g.text("LAG", 0xFFFFDD);
-                            else g.textf("%d", 0xFFFFDD, NULL, o->ping);
-                        });
-                        g.poplist();
+                        g.background(0x808080, 3);
                     }
-
-                    if(c != cols-1)
-                        g.space(3);
-                    g.poplist();
-                    g.poplist();
-
-                    index += stride;
+                    g.text(colorname(o), status, "spectator");
+                    if(o==player1 && highlightscore) g.poplist();
                 }
+                g.poplist();
+
+                g.space(1);
+                g.pushlist();
+                g.text("cn", 0xFFFF80);
+                loopv(spectators) g.textf("%d", 0xFFFFDD, NULL, spectators[i]->clientnum);
+                g.poplist();
+
                 g.poplist();
             }
             else
@@ -366,29 +316,6 @@ namespace game
                 }
             }
         }
-    }
-
-    static int scoresort(const int *a, const int *b)
-    {
-        return *b-*a;
-    }
-    int getscores(vector<int> &v)
-    {
-        int numgroups = groupplayers();
-        loopk(numgroups)
-        {
-            scoregroup &sg = *groups[k];
-            if(sg.team && m_teammode)
-                v.add(sg.score);
-        }
-        v.sort(scoresort);
-        loopk(numgroups)
-        {
-            scoregroup &sg = *groups[k];
-            if(isteam(player1->team, sg.team))
-                return k;
-        }
-        return -1;
     }
 
     struct scoreboardgui : g3d_callback
@@ -438,4 +365,3 @@ namespace game
     ICOMMAND(showscores, "D", (int *down), showscores(*down!=0));
 }
 
-            

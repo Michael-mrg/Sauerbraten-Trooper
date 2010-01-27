@@ -579,7 +579,6 @@ namespace game
     {
         connected = true;
         remote = _remote;
-        maptimeleft = remote ? -1 : 0;
         if(editmode) toggleedit();
     }
 
@@ -1000,8 +999,11 @@ namespace game
                 {
                     filtertext(text, text, false, MAXNAMELEN);
                     if(!text[0]) copystring(text, "unnamed");
-                    conoutf("%s is now known as %s", colorname(d), colorname(d, text));
-                    copystring(d->name, text, MAXNAMELEN+1);
+                    if(strcmp(text, d->name))
+                    {
+                        conoutf("%s is now known as %s", colorname(d), colorname(d, text));
+                        copystring(d->name, text, MAXNAMELEN+1);
+                    }
                 }
                 break;
 
