@@ -402,7 +402,7 @@ void gl_checkextensions()
                 //if(osversion<0x1050) ??
                 apple_glsldepth_bug = 1;
 #endif
-                if(apple_glsldepth_bug) conoutf(CON_WARN, "WARNING: Using Apple GLSL depth bug workaround. (use \"/apple_glsldepth_bug 0\" to disable if unnecessary");
+//                if(apple_glsldepth_bug) conoutf(CON_WARN, "WARNING: Using Apple GLSL depth bug workaround. (use \"/apple_glsldepth_bug 0\" to disable if unnecessary");
             }
         }
 
@@ -413,7 +413,7 @@ void gl_checkextensions()
         if(osversion>=0x1050) // fixed in 1055 for some hardware.. but not all..
         {
             apple_ff_bug = 1;
-            conoutf(CON_WARN, "WARNING: Using Leopard ARB_position_invariant bug workaround. (use \"/apple_ff_bug 0\" to disable if unnecessary)");
+//            conoutf(CON_WARN, "WARNING: Using Leopard ARB_position_invariant bug workaround. (use \"/apple_ff_bug 0\" to disable if unnecessary)");
         }
 #endif
 
@@ -615,7 +615,7 @@ void gl_init(int w, int h, int bpp, int depth, int fsaa)
         renderpath = R_FIXEDFUNCTION;
         conoutf(CON_INIT, "Rendering using the OpenGL fixed-function path.");
         if(ati_texgen_bug) conoutf(CON_WARN, "WARNING: Using ATI texgen bug workaround. (use \"/ati_texgen_bug 0\" to disable if unnecessary)");
-        if(nvidia_texgen_bug) conoutf(CON_WARN, "WARNING: Using NVIDIA texgen bug workaround. (use \"/nvidia_texgen_bug 0\" to disable if unnecessary)");
+//        if(nvidia_texgen_bug) conoutf(CON_WARN, "WARNING: Using NVIDIA texgen bug workaround. (use \"/nvidia_texgen_bug 0\" to disable if unnecessary)");
     }
     else
     {
@@ -1919,6 +1919,10 @@ void gl_drawhud(int w, int h)
             if(showfpsrange) draw_textf("fps %d+%d-%d", w*3-7*FONTH, h*3-FONTH*3/2, curfps[0], curfps[1], curfps[2]);
             else draw_textf("fps %d", w*3-5*FONTH, h*3-100, curfps[0]);
 
+            game::renderpinghud(w, h, FONTH);
+            game::rendertimehud(w, h, FONTH);
+            game::renderscorehud(w, h, FONTH);
+            
             if(editmode || showeditstats)
             {
                 static int laststats = 0, prevstats[8] = { 0, 0, 0, 0, 0, 0, 0 }, curstats[8] = { 0, 0, 0, 0, 0, 0, 0 };

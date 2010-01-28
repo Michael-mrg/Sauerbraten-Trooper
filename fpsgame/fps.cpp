@@ -3,7 +3,7 @@
 namespace game
 {
     bool intermission = false;
-    int maptime = 0, maprealtime = 0, minremain = 0;
+    int maptime = 0, maprealtime = 0, minremain = 0, maptimeleft = 0;
     int respawnent = -1;
     int lasthit = 0, lastspawnattempt = 0;
 
@@ -378,6 +378,7 @@ namespace game
         else
         {
             d->move = d->strafe = 0;
+            d->deaths ++;
             d->resetinterp();
             d->smoothmillis = 0;
             playsound(S_DIE1+rnd(2), &d->o);
@@ -445,6 +446,7 @@ namespace game
         {
             conoutf(CON_GAMEINFO, "\f2time remaining: %d %s", timeremain, timeremain==1 ? "minute" : "minutes");
         }
+        maptimeleft = (lastmillis + timeremain * 60000) * (maptimeleft == -1 ? -1 : 1);
     }
 
     vector<fpsent *> clients;
@@ -626,16 +628,106 @@ namespace game
         loopv(players) if(d!=players[i] && !strcmp(name, players[i]->name)) return true;
         return false;
     }
-
+    
+    int create_colored_name(const char *name, char *t_clan, char *t_name)
+    {
+        int indices[4] = {0};
+        int len = strlen(name);
+        const char *startchars = "[|{}=<(/\\";
+        const char *endchars = "]|{}=>):/\\.";
+        
+            // >tst
+        while(strchr(startchars, name[indices[0]]))
+            indices[0] ++;
+        if(!indices[0]) // name|TAG|
+        {
+            int t = len - 1;
+            while(t != -1 && strchr(endchars, name[t]))
+                t --;
+            if(t != len - 1)
+            {
+                indices[1] = t + 1;
+                while(t != -1 && !strchr(startchars, name[t]))
+                    t --;
+                if(t < 1)
+                    return -1;
+                indices[0] = t + 1; indices[2] = 0; indices[3] = indices[0] - 1;
+                while(strchr(startchars, name[indices[3]-1]))
+                    indices[3] --;
+            }
+        }
+        if(!indices[1]) // |TAG|name
+        {
+            indices[1] = indices[0];
+            while(!strchr(endchars, name[indices[1]]))
+                indices[1] ++;
+            indices[2] = indices[1];
+            while(strchr(endchars, name[indices[2]]))
+                indices[2] ++;
+            indices[3] = len;
+        }
+        if(indices[1] == len)
+            indices[1] = indices[2] = 0;
+        
+        // If one of the tag separators is a bound, and clan_name > real_name, swap.
+        if(indices[3] == len && !indices[0] && len < indices[1]+indices[2])
+        {
+            int a = indices[0], b = indices[1];
+            indices[0] = indices[2], indices[1] = indices[3];
+            indices[2] = a, indices[3] = b;
+        }
+        
+        if(indices[0] < 0 || indices[1] < 0 || indices[2] < 0 || indices[3] < 0 ||
+           indices[0] > len || indices[1] > len || indices[2] > len || indices[3] > len ||
+           indices[1] <= indices[0] || indices[3] <= indices[2])
+            return -1;
+        memset(t_clan, '\0', 260);
+        memset(t_name, '\0', 260);
+        strncpy(t_clan, name+indices[0], indices[1]-indices[0]);
+        strncpy(t_name, name+indices[2], indices[3]-indices[2]);
+        
+        int colors_count = 12;
+        const char *custom_names[] = { "mVa", 0 };
+        int i = 0;
+        while(custom_names[i] && strcmp(custom_names[i], t_clan))
+            i ++;
+        int c = colors_count + i;
+        if(!custom_names[i])
+        {
+            for(int j = 1; j < strlen(t_clan); j ++)
+                c += t_clan[i] ^ t_clan[i-1];
+            c %= colors_count;
+        }
+        return c > 9 ? 87 + c : 48 + c;
+    }
+    
+    VARP(colornames, 0, 1, 1);
     const char *colorname(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
-        if(name[0] && !duplicatename(d, name) && d->aitype == AI_NONE) return name;
-        static string cname[3];
-        static int cidx = 0;
-        cidx = (cidx+1)%3;
-        formatstring(cname[cidx])(d->aitype == AI_NONE ? "%s%s \fs\f5(%d)\fr" : "%s%s \fs\f5[%d]\fr", prefix, name, d->clientnum);
-        return cname[cidx];
+        if(d->name_cache_colored != colornames || strcmp(name, d->name_cache))
+        {
+            d->colored_name[0] = 0;
+            strcpy(d->name_cache, name);
+            d->name_cache_colored = colornames;
+            if(colornames)
+            {
+                string t_name, t_clan;
+                int color = create_colored_name(name, t_clan, t_name);
+                if(color != -1)
+                    formatstring(d->colored_name)("\fs\e%c%s\fr %s", color, t_clan, t_name);
+            }
+            if(!d->colored_name[0])
+                strcpy(d->colored_name, name);
+            bool is_bot = d->aitype != AI_NONE;
+            if(is_bot || duplicatename(d, name))
+            {
+                string t;
+                formatstring(t)(is_bot ? " \fs\f5[%d]\fr" : " \fs\f5(%d)\fr", d->clientnum);
+                strcat(d->colored_name, t);
+            }
+        }        
+        return d->colored_name;
     }
 
     void suicide(physent *d)
@@ -886,6 +978,7 @@ namespace game
         g->poplist();
     }
 
+    VARP(colorserverbrowser, 0, 1, 1);
     bool serverinfoentry(g3d_gui *g, int i, const char *name, int port, const char *sdesc, const char *map, int ping, const vector<int> &attr, int np)
     {
         if(ping < 0 || attr.empty() || attr[0]!=PROTOCOL_VERSION)
@@ -922,42 +1015,50 @@ namespace game
             return false;
         }
 
+        int color = 0xFFFFDD;
+        if(colorserverbrowser)
+        {
+            if(attr[1] == 1) color = 0xA68064; // coop edit
+            else if(attr[4] > 1) color = 0x90EE90; // Mastermode locked or private
+            else if(attr[3] == np) color = 0xFF4444; // Server full
+            else if((float)np/attr[3] > 0.5) color = 0x8888FF; // Server >50% full
+        }
         switch(i)
         {
             case 0:
-                if(g->buttonf("%d ", 0xFFFFDD, "server", ping)&G3D_UP) return true;
+                if(g->buttonf("%d ", color, "server", ping)&G3D_UP) return true;
                 break;
 
             case 1:
                 if(attr.length()>=4)
                 {
-                    if(g->buttonf("%d/%d ", 0xFFFFDD, NULL, np, attr[3])&G3D_UP) return true;
+                    if(g->buttonf("%d/%d ", color, NULL, np, attr[3])&G3D_UP) return true;
                 }
-                else if(g->buttonf("%d ", 0xFFFFDD, NULL, np)&G3D_UP) return true;
+                else if(g->buttonf("%d ", color, NULL, np)&G3D_UP) return true;
                 break;
 
             case 2:
-                if(g->buttonf("%.25s ", 0xFFFFDD, NULL, map)&G3D_UP) return true;
+                if(g->buttonf("%.25s ", color, NULL, map)&G3D_UP) return true;
                 break;
 
             case 3:
-                if(g->buttonf("%s ", 0xFFFFDD, NULL, attr.length()>=2 ? server::modename(attr[1], "") : "")&G3D_UP) return true;
+                if(g->buttonf("%s ", color, NULL, attr.length()>=2 ? server::modename(attr[1], "") : "")&G3D_UP) return true;
                 break;
 
             case 4:
-                if(g->buttonf("%s ", 0xFFFFDD, NULL, attr.length()>=5 ? server::mastermodename(attr[4], "") : "")&G3D_UP) return true;
+                if(g->buttonf("%s ", color, NULL, attr.length()>=5 ? server::mastermodename(attr[4], "") : "")&G3D_UP) return true;
                 break;
 
             case 5:
-                if(g->buttonf("%s ", 0xFFFFDD, NULL, name)&G3D_UP) return true;
+                if(g->buttonf("%s ", color, NULL, name)&G3D_UP) return true;
                 break;
 
             case 6:
-                if(g->buttonf("%d ", 0xFFFFDD, NULL, port)&G3D_UP) return true;
+                if(g->buttonf("%d ", color, NULL, port)&G3D_UP) return true;
                 break;
 
             case 7:
-                if(g->buttonf("%.25s", 0xFFFFDD, NULL, sdesc)&G3D_UP) return true;
+                if(g->buttonf("%.25s", color, NULL, sdesc)&G3D_UP) return true;
                 break;
         }
         return false;
@@ -976,6 +1077,48 @@ namespace game
     void loadconfigs()
     {
         execfile("auth.cfg", false);
+    }
+    
+    VARP(showpinghud, 0, 1, 1);
+    void renderpinghud(int w, int h, int fonth)
+    {
+        if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING)
+            draw_textf("%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping);
+    }
+    
+
+    // Credit to WahnFred
+    VARP(showtimehud, 0, 1, 1);
+    void rendertimehud(int w, int h, int fonth)
+    {
+        if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        {
+            int timeleft = abs(maptimeleft);
+            int t = intermission ? 0 : (timeleft + 1000 - lastmillis) / 1000;
+            int m = t / 60, s = t % 60;
+            if(!m && s && s < 30 && lastmillis % 1000 >= 500) return;
+                // (!m_edit && !m) ? "\f3" : (!s) ? "\f1" : "", m, s
+            const char *color = m ? (s ? "" : "\f1") : "\f3";
+            if(maptimeleft > -1)
+                draw_textf("%s%d:%-2.2d", w*3 - 9*fonth, h*3 - fonth*3/2, color, m, s);
+            else
+                draw_textf("%s<%d min", w*3 - 9*fonth, h*3 - fonth*3/2, color, m+1);
+        }
+    }
+    
+    VARP(showscorehud, 0, 1, 1);
+    void renderscorehud(int w, int h, int fonth)
+    {
+        if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        {
+            vector<int> v;
+            int n = getscores(v);
+            string s;
+            int f = 0;
+            loopv(v)
+                f += sprintf(s+f, "%s\fs%s%d\fr", f ? "-" : "", n == i ? "\f1" : "", v[i]);      
+            draw_text(s, w*3 - 5*fonth, h*3 - fonth*5/2);
+        }
     }
 }
 

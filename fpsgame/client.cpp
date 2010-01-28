@@ -579,6 +579,7 @@ namespace game
     {
         connected = true;
         remote = _remote;
+        maptimeleft = remote ? -1 : 0;
         if(editmode) toggleedit();
     }
 

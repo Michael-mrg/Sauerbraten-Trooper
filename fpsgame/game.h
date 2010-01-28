@@ -471,15 +471,17 @@ struct fpsent : dynent, fpsstate
     int smoothmillis;
 
     string name, team, info;
+    string colored_name, name_cache;
+    int name_cache_colored;
     int playermodel;
     ai::aiinfo *ai;
     int ownernum, lastnode;
 
     vec muzzle;
 
-    fpsent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1), attackchan(-1), idlesound(-1), idlechan(-1), frags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1), muzzle(-1, -1, -1)
+    fpsent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1), attackchan(-1), idlesound(-1), idlechan(-1), frags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1), muzzle(-1, -1, -1), name_cache_colored(0)
     {
-        name[0] = team[0] = info[0] = 0;
+        colored_name[0] = name_cache[0] = name[0] = team[0] = info[0] = 0;
         respawn();
     }
     ~fpsent()
@@ -601,6 +603,7 @@ namespace game
     extern int gamemode, nextmode;
     extern string clientmap;
     extern int minremain;
+    extern int maptimeleft;
     extern bool intermission;
     extern int maptime, maprealtime;
     extern fpsent *player1;
@@ -724,6 +727,7 @@ namespace game
     extern void showscores(bool on);
     extern void getbestplayers(vector<fpsent *> &best);
     extern void getbestteams(vector<const char *> &best);
+    extern int getscores(vector<int> &v);
 
     // render
     struct playermodelinfo
