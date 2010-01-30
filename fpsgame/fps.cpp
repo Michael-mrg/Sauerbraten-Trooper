@@ -629,6 +629,7 @@ namespace game
         return false;
     }
     
+    VARP(colorname_offset, 0, 0, 1023);
     int create_colored_name(const char *name, char *t_clan, char *t_name)
     {
         int indices[4] = {0};
@@ -695,7 +696,7 @@ namespace game
         if(!custom_names[i])
         {
             for(int j = 1; j < strlen(t_clan); j ++)
-                c += t_clan[i] ^ t_clan[i-1];
+                c += (t_clan[i] + colorname_offset) ^ t_clan[i-1];
             c %= colors_count;
         }
         return c > 9 ? 87 + c : 48 + c;
@@ -705,11 +706,12 @@ namespace game
     const char *colorname(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
-        if(d->name_cache_colored != colornames || strcmp(name, d->name_cache))
+        int h = (colornames << 10) | colorname_offset;
+        if(d->name_cache_colored != h || strcmp(name, d->name_cache))
         {
             d->colored_name[0] = 0;
             strcpy(d->name_cache, name);
-            d->name_cache_colored = colornames;
+            d->name_cache_colored = h;
             if(colornames)
             {
                 string t_name, t_clan;
@@ -726,8 +728,14 @@ namespace game
                 formatstring(t)(is_bot ? " \fs\f5[%d]\fr" : " \fs\f5(%d)\fr", d->clientnum);
                 strcat(d->colored_name, t);
             }
-        }        
-        return d->colored_name;
+        }
+        // In SV_SWITCHNAME, returning colored_name would fail because the name arg is different.
+        // This code probably shouldn't cache names if name isn't NULL.
+        static string cname[3];
+        static int cidx = 0;
+        cidx = (cidx + 1) % 3;
+        strcpy(cname[cidx], d->colored_name);
+        return cname[cidx];
     }
 
     void suicide(physent *d)
