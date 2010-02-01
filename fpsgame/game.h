@@ -473,6 +473,7 @@ struct fpsent : dynent, fpsstate
     string name, team, info;
     string colored_name, name_cache;
     int name_cache_colored;
+    int rank;
     int playermodel;
     ai::aiinfo *ai;
     int ownernum, lastnode;

@@ -13,6 +13,7 @@ namespace game
     
     VARP(showfrags, 0, 1, 1);
     VARP(scoreboardcolumns, 0, 1, 1);
+    VARP(rankplayers, 0, 1, 1);
 
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -114,6 +115,11 @@ namespace game
         loopi(numgroups) groups[i]->players.sort(playersort);
         spectators.sort(playersort);
         groups.sort(scoregroupcmp, 0, numgroups);
+        if(rankplayers)
+            loopi(numgroups)
+                if(!isteam(player1->team, groups[i]->team))
+                    loopj(ceil(groups[j]->players.length() / 10.0))
+                        groups[i]->players[j]->rank = 1;
         return numgroups;
     }
     
