@@ -154,7 +154,7 @@ namespace game
             case 1: mdlname = mdl.blueteam; break;
             case 2: mdlname = mdl.redteam; break;
         }
-        if(mdlname == mdl.redteam && d->rank)
+        if(game::rankplayers && mdlname == mdl.redteam && d->rank)
             mdlname = mdl.ffa;
         renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll);
 #if 0
