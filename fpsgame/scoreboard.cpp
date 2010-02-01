@@ -12,7 +12,7 @@ namespace game
     VARP(showconnecting, 0, 0, 1);
     
     VARP(showfrags, 0, 1, 1);
-    VARP(spectatorcolumns, 0, 1, 1);
+    VARP(scoreboardcolumns, 0, 1, 1);
 
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -149,9 +149,10 @@ namespace game
         g.text(modemapstr, 0xFFFF80, "server");
     
         int numgroups = groupplayers();
+        int cols = scoreboardcolumns ? (numgroups > 2 ? 3 : numgroups) : 1;
         loopk(numgroups)
         {
-            if((k%2)==0) g.pushlist(); // horizontal
+            if((k%cols)==0) g.pushlist(); // horizontal
             
             scoregroup &sg = *groups[k];
             int bgcolor = sg.team && m_teammode ? (isteam(player1->team, sg.team) ? 0x3030C0 : 0xC03030) : 0,
@@ -279,11 +280,12 @@ namespace game
             g.poplist(); // horizontal
             g.poplist(); // vertical
 
-            if(k+1<numgroups && (k+1)%2) g.space(2);
+            if(k+1<numgroups && (k+1)%cols) g.space(2);
             else g.poplist(); // horizontal
         }
         
         int len = spectators.length();
+        cols = (cols >= 3) ? 5 : cols + 1;
         if(showspectators && len)
         {
             #define loopspecgroup(o, start, end, b) \
@@ -292,7 +294,6 @@ namespace game
                     fpsent *o = spectators[i]; \
                     b; \
                 }
-            int cols = spectatorcolumns ? (m_teammode ? 3 : 2) : 1;
             int index = 0;
             g.pushlist();
             for(int c = 0; c < cols, index < len; c ++)
