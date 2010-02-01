@@ -721,13 +721,6 @@ namespace game
             }
             if(!d->colored_name[0])
                 strcpy(d->colored_name, name);
-            bool is_bot = d->aitype != AI_NONE;
-            if(is_bot || duplicatename(d, name))
-            {
-                string t;
-                formatstring(t)(is_bot ? " \fs\f5[%d]\fr" : " \fs\f5(%d)\fr", d->clientnum);
-                strcat(d->colored_name, t);
-            }
         }
         // In SV_SWITCHNAME, returning colored_name would fail because the name arg is different.
         // This code probably shouldn't cache names if name isn't NULL.
@@ -735,6 +728,13 @@ namespace game
         static int cidx = 0;
         cidx = (cidx + 1) % 3;
         strcpy(cname[cidx], d->colored_name);
+        bool is_bot = d->aitype != AI_NONE;
+        if(is_bot || duplicatename(d, name))
+        {
+            string t;
+            formatstring(t)(is_bot ? " \fs\f5[%d]\fr" : " \fs\f5(%d)\fr", d->clientnum);
+            strcat(cname[cidx], t);
+        }
         return cname[cidx];
     }
 
