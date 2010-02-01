@@ -28,6 +28,8 @@ namespace game
         else if((*b)->state==CS_SPECTATOR) return -1;
         if((*a)->frags > (*b)->frags) return -1;
         if((*a)->frags < (*b)->frags) return 1;
+        if((*a)->deaths > (*b)->deaths) return 1;
+        if((*a)->deaths < (*b)->deaths) return -1;
         return strcmp((*a)->name, (*b)->name);
     }
 
