@@ -1090,8 +1090,12 @@ namespace game
     VARP(showpinghud, 0, 1, 1);
     void renderpinghud(int w, int h, int fonth)
     {
-        if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING)
-            draw_textf("%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping);
+        if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
+            int pj = 0;
+            loopv(players)
+                pj += players[i]->plag;
+            draw_textf("%d,%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping, pj / players.length());
+        }
     }
     
 
@@ -1117,16 +1121,41 @@ namespace game
     VARP(showscorehud, 0, 1, 1);
     void renderscorehud(int w, int h, int fonth)
     {
-        if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        if(showscorehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             vector<int> v;
             int n = getscores(v);
+            if(!v.length()) return;
             string s;
             int f = 0;
             loopv(v)
                 f += sprintf(s+f, "%s\fs%s%d\fr", f ? "-" : "", n == i ? "\f1" : "", v[i]);      
             draw_text(s, w*3 - 5*fonth, h*3 - fonth*5/2);
         }
+    }
+
+    VARP(showhighlights, 0, 1, 1);
+    void renderhighlighthud(int w, int h, int fonth)
+    {
+        if(showhighlights && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        {
+            int k = 0, z = 0;
+            loopv(players) {
+                if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && (players[i]->highlight || (players[i]->thighlight && game::highlighttopfraggers))) {
+                    int rb = w*3-9*fonth-6*fonth*z;
+                    const char *s = colorname(players[i]);
+                    int sw, sh;
+                    text_bounds(s, sw, sh);
+                    draw_textf("%s%s", rb-sw, fonth*(0.66+k), players[i]->state == CS_DEAD ? "\f4" : "", s);
+                    if(k ++ == 4)
+                    {
+                        k = 0;
+                        z ++;
+                    }
+                }
+            }
+        }
+
     }
 }
 

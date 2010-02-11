@@ -13,10 +13,10 @@ namespace game
     
     VARP(showfrags, 0, 1, 1);
     VARP(scoreboardcolumns, 0, 1, 1);
-    VARP(rankplayers, 0, 1, 1);
-    bool highlights[128] = {false};
-    ICOMMAND(highlight, "i", (int *cn), highlights[*cn] = true);
-    ICOMMAND(unhighlight, "i", (int *cn), highlights[*cn] = false);
+    VARP(highlightplayers, 0, 1, 1);
+    VARP(highlighttopfraggers, 0, 1, 1);
+    ICOMMAND(highlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight = true;);
+    ICOMMAND(unhighlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight = false;);
     
     static int playersort(const fpsent **a, const fpsent **b)
     {
@@ -120,14 +120,14 @@ namespace game
         loopi(numgroups) groups[i]->players.sort(playersort);
         spectators.sort(playersort);
         groups.sort(scoregroupcmp, 0, numgroups);
-        if(rankplayers)
+        if(highlightplayers && highlighttopfraggers)
             loopk(numgroups)
                 if(!isteam(player1->team, groups[k]->team))
                 {
                     loopv(groups[k]->players)
-                        groups[k]->players[i]->rank = highlights[groups[k]->players[i]->clientnum];
+                        groups[k]->players[i]->thighlight = false;
                     loopi(ceil(groups[k]->players.length() / 10.0))
-                        groups[k]->players[i]->rank = 1;
+                        groups[k]->players[i]->thighlight = true;
                 }
         return numgroups;
     }

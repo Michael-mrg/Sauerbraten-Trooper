@@ -1,3 +1,4 @@
+#include "engine.h"
 #include "game.h"
 
 namespace game
@@ -154,9 +155,23 @@ namespace game
             case 1: mdlname = mdl.blueteam; break;
             case 2: mdlname = mdl.redteam; break;
         }
-        if(game::rankplayers && mdlname == mdl.redteam && d->rank)
-            mdlname = mdl.ffa;
+        bool high = game::highlightplayers && mdlname == mdl.redteam && (d->highlight || (game::highlighttopfraggers && d->thighlight));
+        int sz, col;
+        if(high) {
+            int cols[] = {0x8080FF, 0xFFFFFF, 0xFF8080, 0x802020};
+            int c = 0, nc = 4;
+            for(int i = 1; i < strlen(d->name)-1; i ++)
+                c += d->name[i] ^ d->name[i-1] + (d->name[i]-d->name[i-1]) ^ d->name[i+1];
+            c %= nc;
+            if(c < 3)
+                mdlname = mdl.ffa;
+            sz = 3.5f + (d->totalshots > 0 ? min(d->totaldamage / d->totalshots * 5.0f, 2.0f) : 0.0f);
+            col = cols[c];
+        }
         renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll);
+        if(high && d->state != CS_DEAD)
+            //particle_flare(d->o, vec(d->o).sub(vec(0, 0, d->eyeheight)), 0, PART_STREAK, col);
+            particle_fireball(vec(d->o).sub(vec(0, 0, d->eyeheight/3)), sz, PART_EXPLOSION_NO_GLARE, 0, col, sz);
 #if 0
         if(d->state!=CS_DEAD && d->quadmillis) 
         {

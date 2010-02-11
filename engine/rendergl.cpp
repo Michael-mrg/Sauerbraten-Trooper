@@ -1922,6 +1922,7 @@ void gl_drawhud(int w, int h)
             game::renderpinghud(w, h, FONTH);
             game::rendertimehud(w, h, FONTH);
             game::renderscorehud(w, h, FONTH);
+            game::renderhighlighthud(w, h, FONTH);
             
             if(editmode || showeditstats)
             {
