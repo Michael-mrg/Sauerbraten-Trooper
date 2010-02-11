@@ -163,7 +163,7 @@ namespace game
         g.text(modemapstr, 0xFFFF80, "server");
     
         int numgroups = groupplayers();
-        int cols = scoreboardcolumns ? (numgroups > 2 ? 3 : numgroups) : 1;
+        int cols = scoreboardcolumns ? (numgroups > 2 ? 3 : numgroups) : (numgroups > 1 ? 2 : 1);
         loopk(numgroups)
         {
             if((k%cols)==0) g.pushlist(); // horizontal
@@ -299,7 +299,7 @@ namespace game
         }
         
         int len = spectators.length();
-        cols = (scoreboardcolumns) ? 1 : ((cols >= 3) ? 5 : cols + 1);
+        cols = (scoreboardcolumns) ? ((cols >= 3) ? 5 : cols + 1) : 1;
         if(showspectators && len)
         {
             #define loopspecgroup(o, start, end, b) \
