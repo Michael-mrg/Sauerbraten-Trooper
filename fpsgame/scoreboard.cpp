@@ -13,7 +13,6 @@ namespace game
     
     VARP(showfrags, 0, 1, 1);
     VARP(scoreboardcolumns, 0, 1, 1);
-    VARP(highlightplayers, 0, 1, 1);
     VARP(highlighttopfraggers, 0, 1, 1);
     ICOMMAND(highlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight = true;);
     ICOMMAND(unhighlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight = false;);
@@ -120,14 +119,14 @@ namespace game
         loopi(numgroups) groups[i]->players.sort(playersort);
         spectators.sort(playersort);
         groups.sort(scoregroupcmp, 0, numgroups);
-        if(highlightplayers && highlighttopfraggers)
+        if(highlighttopfraggers)
             loopk(numgroups)
                 if(!isteam(player1->team, groups[k]->team))
                 {
                     loopv(groups[k]->players)
-                        groups[k]->players[i]->thighlight = false;
+                        groups[k]->players[i]->highlight &= 0x10;
                     loopi(ceil(groups[k]->players.length() / 10.0))
-                        groups[k]->players[i]->thighlight = true;
+                        groups[k]->players[i]->highlight |= 0x01;
                 }
         return numgroups;
     }
@@ -300,7 +299,7 @@ namespace game
         }
         
         int len = spectators.length();
-        cols = (cols >= 3) ? 5 : cols + 1;
+        cols = (scoreboardcolumns) ? 1 : ((cols >= 3) ? 5 : cols + 1);
         if(showspectators && len)
         {
             #define loopspecgroup(o, start, end, b) \

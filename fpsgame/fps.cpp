@@ -629,7 +629,7 @@ namespace game
         return false;
     }
     
-    VARP(colorname_offset, 0, 0, 1023);
+    VARP(colornames_offset, 0, 0, 1023);
     int create_colored_name(const char *name, char *t_clan, char *t_name)
     {
         int indices[4] = {0};
@@ -637,7 +637,6 @@ namespace game
         const char *startchars = "[|{}=<(/\\";
         const char *endchars = "]|{}=>):/\\.";
         
-            // >tst
         while(strchr(startchars, name[indices[0]]))
             indices[0] ++;
         if(!indices[0]) // name|TAG|
@@ -687,26 +686,17 @@ namespace game
         strncpy(t_clan, name+indices[0], indices[1]-indices[0]);
         strncpy(t_name, name+indices[2], indices[3]-indices[2]);
         
-        int colors_count = 12;
-        const char *custom_names[] = { "mVa", 0 };
-        int i = 0;
-        while(custom_names[i] && strcmp(custom_names[i], t_clan))
-            i ++;
-        int c = colors_count + i;
-        if(!custom_names[i])
-        {
-            for(int j = 1; j < strlen(t_clan); j ++)
-                c += (t_clan[i] + colorname_offset) ^ t_clan[i-1];
-            c %= colors_count;
-        }
-        return c > 9 ? 87 + c : 48 + c;
+        int c = 0;
+        for(int i = 1; i < strlen(t_clan); i ++)
+            c += (t_clan[i] + colornames_offset) ^ t_clan[i-1];
+        return 'A' + (c % 13);
     }
     
-    VARP(colornames, 0, 1, 1);
+    VARP(colornames, 0, 0, 1);
     const char *colorname(fpsent *d, const char *name, const char *prefix)
     {
         if(!name) name = d->name;
-        int h = (colornames << 10) | colorname_offset;
+        int h = (colornames << 10) | colornames_offset;
         if(d->name_cache_colored != h || strcmp(name, d->name_cache))
         {
             d->colored_name[0] = 0;
@@ -717,7 +707,7 @@ namespace game
                 string t_name, t_clan;
                 int color = create_colored_name(name, t_clan, t_name);
                 if(color != -1)
-                    formatstring(d->colored_name)("\fs\e%c%s\fr %s", color, t_clan, t_name);
+                    formatstring(d->colored_name)("\fs\f%c%s\fr %s", color, t_clan, t_name);
             }
             if(!d->colored_name[0])
                 strcpy(d->colored_name, name);
@@ -986,7 +976,7 @@ namespace game
         g->poplist();
     }
 
-    VARP(colorserverbrowser, 0, 1, 1);
+    VARP(colorserverbrowser, 0, 0, 1);
     bool serverinfoentry(g3d_gui *g, int i, const char *name, int port, const char *sdesc, const char *map, int ping, const vector<int> &attr, int np)
     {
         if(ping < 0 || attr.empty() || attr[0]!=PROTOCOL_VERSION)
@@ -1087,7 +1077,7 @@ namespace game
         execfile("auth.cfg", false);
     }
     
-    VARP(showpinghud, 0, 1, 1);
+    VARP(showpinghud, 0, 0, 1);
     void renderpinghud(int w, int h, int fonth)
     {
         if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
@@ -1100,7 +1090,7 @@ namespace game
     
 
     // Credit to WahnFred
-    VARP(showtimehud, 0, 1, 1);
+    VARP(showtimehud, 0, 0, 1);
     void rendertimehud(int w, int h, int fonth)
     {
         if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
@@ -1118,7 +1108,7 @@ namespace game
         }
     }
     
-    VARP(showscorehud, 0, 1, 1);
+    VARP(showscorehud, 0, 0, 1);
     void renderscorehud(int w, int h, int fonth)
     {
         if(showscorehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
@@ -1134,14 +1124,14 @@ namespace game
         }
     }
 
-    VARP(showhighlights, 0, 1, 1);
+    VARP(showhighlights, 0, 0, 1);
     void renderhighlighthud(int w, int h, int fonth)
     {
         if(showhighlights && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             int k = 0, z = 0;
             loopv(players) {
-                if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && (players[i]->highlight || (players[i]->thighlight && game::highlighttopfraggers))) {
+                if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && players[i]->highlight) {
                     int rb = w*3-9*fonth-6*fonth*z;
                     const char *s = colorname(players[i]);
                     int sw, sh;

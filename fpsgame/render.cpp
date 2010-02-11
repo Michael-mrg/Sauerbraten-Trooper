@@ -155,9 +155,10 @@ namespace game
             case 1: mdlname = mdl.blueteam; break;
             case 2: mdlname = mdl.redteam; break;
         }
-        bool high = game::highlightplayers && mdlname == mdl.redteam && (d->highlight || (game::highlighttopfraggers && d->thighlight));
+        bool high = mdlname == mdl.redteam && d->highlight;
         int sz, col;
         if(high) {
+            // These really don't matter. Too transparent
             int cols[] = {0x8080FF, 0xFFFFFF, 0xFF8080, 0x802020};
             int c = 0, nc = 4;
             for(int i = 1; i < strlen(d->name)-1; i ++)
