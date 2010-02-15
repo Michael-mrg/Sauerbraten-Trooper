@@ -1082,10 +1082,20 @@ namespace game
     void renderpinghud(int w, int h, int fonth)
     {
         if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
-            int pj = 0;
+            if(!showpj) {
+                draw_textf("%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping);
+                return;
+            }
+            int pj = 0, c = 0;
             loopv(players)
-                pj += players[i]->plag;
-            draw_textf("%d,%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping, pj / players.length());
+                if(players[i]->plag != 0 && players[i]->state != CS_SPECTATOR) {
+                    pj += players[i]->plag;
+                    c ++;
+                }
+            if(showping)
+                draw_textf("%d,%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping, c ? pj / c : 0);
+            else
+                draw_textf("%d", w*3 - 9 * fonth, h*3 - fonth*5/2, c ? pj / c : 0);
         }
     }
     
