@@ -422,6 +422,7 @@ namespace game
 		ai::killed(d, actor);
     }
 
+    VARP(showtimehud, 0, 0, 1);
     void timeupdate(int timeremain)
     {
         minremain = timeremain;
@@ -442,7 +443,7 @@ namespace game
             
             if(identexists("intermission")) execute("intermission");
         }
-        else if(timeremain > 0)
+        else if(timeremain > 0 && !showtimehud)
         {
             conoutf(CON_GAMEINFO, "\f2time remaining: %d %s", timeremain, timeremain==1 ? "minute" : "minutes");
         }
@@ -1090,7 +1091,6 @@ namespace game
     
 
     // Credit to WahnFred
-    VARP(showtimehud, 0, 0, 1);
     void rendertimehud(int w, int h, int fonth)
     {
         if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
