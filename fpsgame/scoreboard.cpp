@@ -16,7 +16,7 @@ namespace game
     VARP(highlighttopfraggers, 0, 1, 1);
     ICOMMAND(highlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight |= 0x10;);
     ICOMMAND(unhighlight, "i", (int *cn), loopv(players) if(players[i]->clientnum == *cn) players[i]->highlight &= 0x01;);
-    ICOMMAND(highlightall, "i", (), loopv(players) players[i]->highlight |= 0x10;);
+    VARP(highlightall, 0, 0, 1);
 
     static int playersort(const fpsent **a, const fpsent **b)
     {

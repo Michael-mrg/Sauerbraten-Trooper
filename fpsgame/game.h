@@ -614,7 +614,8 @@ namespace game
     extern int respawnent;
     extern int following;
     extern int smoothmove, smoothdist;
-    extern int highlightplayers, highlighttopfraggers;
+    extern int highlightplayers, highlighttopfraggers, highlightall;
+    extern int showpj, showping;
 
     extern bool clientoption(const char *arg);
     extern fpsent *getclient(int cn);

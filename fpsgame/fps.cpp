@@ -1141,7 +1141,7 @@ namespace game
         {
             int k = 0, z = 0;
             loopv(players) {
-                if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && players[i]->highlight) {
+                if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && (players[i]->highlight || highlightall)) {
                     int rb = w*3-9*fonth-6*fonth*z;
                     const char *s = colorname(players[i]);
                     int sw, sh;

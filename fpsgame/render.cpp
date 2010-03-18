@@ -155,7 +155,7 @@ namespace game
             case 1: mdlname = mdl.blueteam; break;
             case 2: mdlname = mdl.redteam; break;
         }
-        bool high = mdlname == mdl.redteam && d->highlight;
+        bool high = mdlname == mdl.redteam && (d->highlight || highlightall);
         int sz, col;
         if(high) {
             // These really don't matter. Too transparent
