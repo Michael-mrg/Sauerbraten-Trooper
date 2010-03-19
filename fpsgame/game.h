@@ -614,6 +614,8 @@ namespace game
     extern int respawnent;
     extern int following;
     extern int smoothmove, smoothdist;
+
+    extern int michaelmods;
     extern int highlightplayers, highlighttopfraggers, highlightall;
     extern int showpj, showping;
 

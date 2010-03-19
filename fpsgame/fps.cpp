@@ -2,6 +2,7 @@
 
 namespace game
 {
+    VARP(michaelmods, 0, 1, 1);
     bool intermission = false;
     int maptime = 0, maprealtime = 0, minremain = 0, maptimeleft = 0;
     int respawnent = -1;
@@ -698,7 +699,7 @@ namespace game
     {
         if(!name) name = d->name;
         int h = (colornames << 10) | colornames_offset;
-        if(d->name_cache_colored != h || strcmp(name, d->name_cache))
+        if(michaelmods && colornames && (d->name_cache_colored != h || strcmp(name, d->name_cache)))
         {
             d->colored_name[0] = 0;
             strcpy(d->name_cache, name);
@@ -718,7 +719,7 @@ namespace game
         static string cname[3];
         static int cidx = 0;
         cidx = (cidx + 1) % 3;
-        strcpy(cname[cidx], d->colored_name);
+        strcpy(cname[cidx], michaelmods && *d->colored_name ? d->colored_name : name);
         bool is_bot = d->aitype != AI_NONE;
         if(is_bot || duplicatename(d, name))
         {
@@ -1016,11 +1017,11 @@ namespace game
         }
 
         int color = 0xFFFFDD;
-        if(colorserverbrowser)
+        if(michaelmods && colorserverbrowser)
         {
-            if(attr[1] == 1) color = 0xA68064; // coop edit
+            if(attr[3] == np) color = 0xFF4444; // Server full
+            else if(attr[1] == 1) color = 0xA68064; // coop edit
             else if(attr[4] > 1) color = 0x90EE90; // Mastermode locked or private
-            else if(attr[3] == np) color = 0xFF4444; // Server full
             else if((float)np/attr[3] > 0.5) color = 0x8888FF; // Server >50% full
         }
         switch(i)
@@ -1082,7 +1083,7 @@ namespace game
     VARP(showpinghud, 0, 0, 1);
     void renderpinghud(int w, int h, int fonth)
     {
-        if(showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
+        if(michaelmods && showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
             if(!showpj) {
                 draw_textf("%d", w*3 - 9 * fonth, h*3 - fonth*5/2, player1->ping);
                 return;
@@ -1104,7 +1105,7 @@ namespace game
     // Credit to WahnFred
     void rendertimehud(int w, int h, int fonth)
     {
-        if(showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        if(michaelmods && showtimehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             int timeleft = abs(maptimeleft);
             int t = intermission ? 0 : (timeleft + 1000 - lastmillis) / 1000;
@@ -1122,7 +1123,7 @@ namespace game
     VARP(showscorehud, 0, 0, 1);
     void renderscorehud(int w, int h, int fonth)
     {
-        if(showscorehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        if(michaelmods && showscorehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             vector<int> v;
             int n = getscores(v);
@@ -1138,7 +1139,7 @@ namespace game
     VARP(showhighlights, 0, 0, 1);
     void renderhighlighthud(int w, int h, int fonth)
     {
-        if(showhighlights && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
+        if(michaelmods && showhighlights && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             int k = 0, z = 0;
             loopv(players) {

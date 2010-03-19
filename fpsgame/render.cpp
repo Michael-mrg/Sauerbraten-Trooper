@@ -68,7 +68,7 @@ namespace game
 
     const playermodelinfo *getplayermodelinfo(int n)
     {
-        if(overridemodel != -1) return &playermodels[overridemodel];
+        if(michaelmods && overridemodel != -1) return &playermodels[overridemodel];
         if(size_t(n) >= sizeof(playermodels)/sizeof(playermodels[0])) return NULL;
         return &playermodels[n];
     }
@@ -155,24 +155,30 @@ namespace game
             case 1: mdlname = mdl.blueteam; break;
             case 2: mdlname = mdl.redteam; break;
         }
-        bool high = mdlname == mdl.redteam && (d->highlight || highlightall);
-        int sz, col;
-        if(high) {
-            // These really don't matter. Too transparent
-            int cols[] = {0x8080FF, 0xFFFFFF, 0xFF8080, 0x802020};
-            int c = 0, nc = 4;
-            for(int i = 1; i < strlen(d->name)-1; i ++)
-                c += d->name[i] ^ d->name[i-1] + (d->name[i]-d->name[i-1]) ^ d->name[i+1];
-            c %= nc;
-            if(c < 3)
-                mdlname = mdl.ffa;
-            sz = 3.5f + (d->totalshots > 0 ? min(d->totaldamage / d->totalshots * 5.0f, 2.0f) : 0.0f);
-            col = cols[c];
+
+        if(michaelmods)
+        {
+            bool high = mdlname == mdl.redteam && (d->highlight || highlightall);
+            int sz, col;
+            if(high)
+            {
+                // These really don't matter. Too transparent
+                int cols[] = {0x8080FF, 0xFFFFFF, 0xFF8080, 0x802020};
+                int c = 0, nc = 4;
+                for(int i = 1; i < strlen(d->name)-1; i ++)
+                    c += d->name[i] ^ d->name[i-1] + (d->name[i]-d->name[i-1]) ^ d->name[i+1];
+                c %= nc;
+                if(c < 3)
+                    mdlname = mdl.ffa;
+                sz = 3.5f + (d->totalshots > 0 ? min(d->totaldamage / d->totalshots * 5.0f, 2.0f) : 0.0f);
+                col = cols[c];
+            }
+            renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll);
+            if(high && d->state != CS_DEAD)
+                particle_fireball(vec(d->o).sub(vec(0, 0, d->eyeheight/3)), sz, PART_EXPLOSION_NO_GLARE, 0, col, sz);
         }
-        renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll);
-        if(high && d->state != CS_DEAD)
-            //particle_flare(d->o, vec(d->o).sub(vec(0, 0, d->eyeheight)), 0, PART_STREAK, col);
-            particle_fireball(vec(d->o).sub(vec(0, 0, d->eyeheight/3)), sz, PART_EXPLOSION_NO_GLARE, 0, col, sz);
+        else
+            renderclient(d, mdlname, a[0].tag ? a : NULL, hold, attack, delay, lastaction, intermission && d->state!=CS_DEAD ? 0 : d->lastpain, fade, ragdoll && mdl.ragdoll);
 #if 0
         if(d->state!=CS_DEAD && d->quadmillis) 
         {
@@ -213,7 +219,7 @@ namespace game
             {
                 const vec s = d->abovehead();
                 float v[] = {HUGE_VAL, 512.0f, 256.0f, 192.0f, 128.0f, 64.0f};
-                float r = (distantnametags) ? camera1->o.dist(s)/v[distantnametags] : 0.0f;
+                float r = (michaelmods && distantnametags) ? camera1->o.dist(s)/v[distantnametags] : 0.0f;
                 particle_text(s, d->info, PART_TEXT, 1, team ? (team==1 ? 0x6496FF : 0xFF4B19) : 0x1EC850, r + 2.0f);
             }
         }

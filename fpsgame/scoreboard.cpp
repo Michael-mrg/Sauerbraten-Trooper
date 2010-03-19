@@ -120,7 +120,7 @@ namespace game
         loopi(numgroups) groups[i]->players.sort(playersort);
         spectators.sort(playersort);
         groups.sort(scoregroupcmp, 0, numgroups);
-        if(highlighttopfraggers)
+        if(michaelmods && highlighttopfraggers)
             loopk(numgroups)
                 if(!isteam(player1->team, groups[k]->team))
                 {
@@ -164,7 +164,7 @@ namespace game
         g.text(modemapstr, 0xFFFF80, "server");
     
         int numgroups = groupplayers();
-        int cols = scoreboardcolumns ? (numgroups > 2 ? 3 : numgroups) : (numgroups > 1 ? 2 : 1);
+        int cols = michaelmods && scoreboardcolumns ? (numgroups > 2 ? 3 : numgroups) : (numgroups > 1 ? 2 : 1);
         loopk(numgroups)
         {
             if((k%cols)==0) g.pushlist(); // horizontal
@@ -216,7 +216,7 @@ namespace game
                 g.pushlist(); // horizontal
             }
 
-            if(showfrags)
+            if(michaelmods && showfrags)
             {
                 g.pushlist();
                 g.strut(3);
@@ -300,7 +300,7 @@ namespace game
         }
         
         int len = spectators.length();
-        cols = (scoreboardcolumns) ? ((cols >= 3) ? 5 : cols + 1) : 1;
+        cols = (michaelmods && scoreboardcolumns) ? ((cols >= 3) ? 5 : cols + 1) : 1;
         if(showspectators && len)
         {
             #define loopspecgroup(o, start, end, b) \
