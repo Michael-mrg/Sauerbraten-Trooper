@@ -699,12 +699,12 @@ namespace game
     {
         if(!name) name = d->name;
         int h = (colornames << 10) | colornames_offset;
-        if(michaelmods && colornames && (d->name_cache_colored != h || strcmp(name, d->name_cache)))
+        if(d->name_cache_colored != h || strcmp(name, d->name_cache))
         {
             d->colored_name[0] = 0;
             strcpy(d->name_cache, name);
             d->name_cache_colored = h;
-            if(colornames)
+            if(michaelmods && colornames)
             {
                 string t_name, t_clan;
                 int color = create_colored_name(name, t_clan, t_name);
