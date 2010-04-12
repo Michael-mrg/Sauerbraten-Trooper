@@ -316,15 +316,14 @@ namespace game
     }
     ICOMMAND(spectator, "is", (int *val, char *who), togglespectator(*val, who));
 
-    void fakespectator(int val) {
+    void fakespectator(int val)
+    {
         if(val)
         {
-            if(editmode) toggleedit();
-            if(player1->state==CS_DEAD) showscores(false);
-            disablezoom();
+            suicide(player1);
             player1->state = CS_SPECTATOR;
         }
-        else if(player1->state==CS_SPECTATOR)
+        else if(player1->state == CS_SPECTATOR)
         {
             stopfollowing();
             deathstate(player1, true);
