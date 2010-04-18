@@ -880,15 +880,22 @@ namespace game
 
         if(player1->state==CS_SPECTATOR)
         {
-            int pw, ph, tw, th, fw, fh;
+            int pw, ph, tw, th, fw, fh, sw, sh, nw, nh;
             text_bounds("  ", pw, ph);
             text_bounds("SPECTATOR", tw, th);
             th = max(th, ph);
             fpsent *f = followingplayer();
             text_bounds(f ? colorname(f) : " ", fw, fh);
             fh = max(fh, ph);
-            draw_text("SPECTATOR", w*1800/h - tw - pw, 1650 - th - fh);
-            if(f) draw_text(colorname(f), w*1800/h - fw - pw, 1650 - fh);
+            draw_text("SPECTATOR", w*1800/h - tw - pw, 1650 - th - fh - (f ? fh : 0));
+            if(f) {
+                defformatstring(n)("%d ", following);
+                text_bounds(n, nw, nh);
+                draw_textf("%d %s", w*1800/h - fw - nw - pw, 1650 - 2 * fh, following, colorname(f));
+                defformatstring(s)("%d %d %.1f%%", f->frags, f->deaths, f->totaldamage*100.0/max(f->totalshots, 1));
+                text_bounds(s, sw, sh);
+                draw_text(s, w*1800/h - sw - pw, 1650 - fh);
+            }
         }
 
         fpsent *d = hudplayer();

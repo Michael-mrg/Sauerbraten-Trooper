@@ -1090,6 +1090,7 @@ namespace game
                 int prevaction = s->lastaction;
                 s->lastaction = lastmillis;
                 s->lastattackgun = s->gunselect;
+                s->totalshots += guns[s->gunselect].damage*(s->quadmillis ? 4 : 1)*(s->gunselect==GUN_SG ? SGRAYS : 1);
                 shoteffects(gun, from, to, s, false, prevaction);
                 break;
             }
@@ -1106,6 +1107,7 @@ namespace game
                 if(!target || !actor) break;
                 target->armour = armour;
                 target->health = health;
+                actor->totaldamage += damage;
                 if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
                 damaged(damage, target, actor, false);
                 break;
