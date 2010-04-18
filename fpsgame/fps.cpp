@@ -2,7 +2,7 @@
 
 namespace game
 {
-    VARP(michaelmods, 0, 1, 1);
+    VARP(michaelmods, 0, 1, 1);    
     bool intermission = false;
     int maptime = 0, maprealtime = 0, minremain = 0, maptimeleft = 0;
     int respawnent = -1;
@@ -16,6 +16,14 @@ namespace game
 
     bool clientoption(const char *arg) { return false; }
 
+    void stats(const char *who)
+    {
+        int i = who[0] ? parseplayer(who) : -1;
+        fpsent *d = i == -1 ? player1 : getclient(i);
+        conoutf("%s \fs\f1(%d)\fr Frags: \fs\f1%d\fr Deaths: \fs\f2%d\fr Accuracy: \fs\f0%.1f%%\fr Teamkills: \fs\f3%d\fr", colorname(d), d->clientnum, d->frags, d->deaths, d->totaldamage*50.0/max(d->totalshots, 1), d->teamkills);
+    }
+    COMMAND(stats, "s");
+    
     void taunt()
     {
         if(player1->state!=CS_ALIVE || player1->physstate<PHYS_SLOPE) return;

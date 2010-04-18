@@ -1108,6 +1108,7 @@ namespace game
                 target->armour = armour;
                 target->health = health;
                 actor->totaldamage += damage;
+                if(actor!=target && isteam(actor->team, target->team)) actor->teamkills++;
                 if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
                 damaged(damage, target, actor, false);
                 break;

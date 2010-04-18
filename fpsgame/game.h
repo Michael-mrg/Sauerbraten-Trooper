@@ -465,7 +465,7 @@ struct fpsent : dynent, fpsstate
     int lasttaunt;
     int lastpickup, lastpickupmillis, lastbase, lastrepammo, flagpickup;
     int superdamage;
-    int frags, deaths, totaldamage, totalshots;
+    int frags, deaths, totaldamage, totalshots, teamkills;
     editinfo *edit;
     float deltayaw, deltapitch, newyaw, newpitch;
     int smoothmillis;
@@ -480,7 +480,7 @@ struct fpsent : dynent, fpsstate
 
     vec muzzle;
 
-    fpsent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1), attackchan(-1), idlesound(-1), idlechan(-1), frags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1), muzzle(-1, -1, -1), name_cache_colored(0), highlight(0)
+    fpsent() : weight(100), clientnum(-1), privilege(PRIV_NONE), lastupdate(0), plag(0), ping(0), lifesequence(0), respawned(-1), suicided(-1), lastpain(0), attacksound(-1), attackchan(-1), idlesound(-1), idlechan(-1), frags(0), deaths(0), totaldamage(0), totalshots(0), edit(NULL), smoothmillis(-1), playermodel(-1), ai(NULL), ownernum(-1), muzzle(-1, -1, -1), name_cache_colored(0), highlight(0), teamkills(0)
     {
         colored_name[0] = name_cache[0] = name[0] = team[0] = info[0] = 0;
         respawn();
