@@ -881,6 +881,7 @@ namespace game
         }
     }
 
+    VARP(spectatorstats, 0, 1, 1);
     void gameplayhud(int w, int h)
     {
         glPushMatrix();
@@ -895,14 +896,17 @@ namespace game
             fpsent *f = followingplayer();
             text_bounds(f ? colorname(f) : " ", fw, fh);
             fh = max(fh, ph);
-            draw_text("SPECTATOR", w*1800/h - tw - pw, 1650 - th - fh - (f ? fh : 0));
-            if(f) {
-                defformatstring(n)("%d ", following);
-                text_bounds(n, nw, nh);
-                draw_textf("%d %s", w*1800/h - fw - nw - pw, 1650 - 2 * fh, following, colorname(f));
-                defformatstring(s)("%d %d %.1f%%", f->frags, f->deaths, f->totaldamage*100.0/max(f->totalshots, 1));
-                text_bounds(s, sw, sh);
-                draw_text(s, w*1800/h - sw - pw, 1650 - fh);
+            bool z = f && michaelmods && spectatorstats;
+            draw_text("SPECTATOR", w*1800/h - tw - pw, 1650 - th - fh - (z ? fh : 0));
+            if(f)
+            {
+                draw_textf("%s", w*1800/h - fw - pw, 1650 - fh - (z ? fh : 0), colorname(f));
+                if(z)
+                {
+                    defformatstring(s)("\fs\f1(%d)\fr \fs\f1%d\fr \fs\f2%d\fr \fs\f0%.1f%%\fr \fs\f3%d\fr", f->clientnum, f->frags, f->deaths, f->totaldamage*100.0/max(f->totalshots, 1), f->teamkills);
+                    text_bounds(s, sw, sh);
+                    draw_text(s, w*1800/h - sw - pw, 1650 - fh);
+                }
             }
         }
 
