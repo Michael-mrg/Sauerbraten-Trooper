@@ -1090,7 +1090,8 @@ namespace game
                 int prevaction = s->lastaction;
                 s->lastaction = lastmillis;
                 s->lastattackgun = s->gunselect;
-                s->totalshots += guns[s->gunselect].damage*(s->quadmillis ? 4 : 1)*(s->gunselect==GUN_SG ? SGRAYS : 1);
+                if(s != player1)
+                    s->totalshots += guns[s->gunselect].damage*(s->quadmillis ? 4 : 1)*(s->gunselect==GUN_SG ? SGRAYS : 1);
                 shoteffects(gun, from, to, s, false, prevaction);
                 break;
             }
@@ -1107,8 +1108,8 @@ namespace game
                 if(!target || !actor) break;
                 target->armour = armour;
                 target->health = health;
-                actor->totaldamage += damage;
-                if(actor!=target && isteam(actor->team, target->team)) actor->teamkills++;
+                if(actor != player1)
+                    actor->totaldamage += damage;
                 if(target->state == CS_ALIVE && actor != player1) target->lastpain = lastmillis;
                 damaged(damage, target, actor, false);
                 break;
@@ -1136,6 +1137,7 @@ namespace game
                     defformatstring(ds)("%d", actor->frags);
                     particle_textcopy(actor->abovehead(), ds, PART_TEXT, 2000, 0x32FF64, 4.0f, -8);
                 }
+                if(actor!=victim && isteam(actor->team, victim->team)) actor->teamkills++;
                 if(!victim) break;
                 killed(victim, actor);
                 break;

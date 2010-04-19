@@ -20,7 +20,7 @@ namespace game
     {
         int i = who[0] ? parseplayer(who) : -1;
         fpsent *d = i == -1 ? player1 : getclient(i);
-        conoutf("%s \fs\f1(%d)\fr Frags: \fs\f1%d\fr Deaths: \fs\f2%d\fr Accuracy: \fs\f0%.1f%%\fr Teamkills: \fs\f3%d\fr", colorname(d), d->clientnum, d->frags, d->deaths, d->totaldamage*50.0/max(d->totalshots, 1), d->teamkills);
+        conoutf("%s \fs\f1(%d)\fr Frags: \fs\f1%d\fr Deaths: \fs\f2%d\fr Accuracy: \fs\f0%.1f%%\fr Teamkills: \fs\f3%d\fr", colorname(d), d->clientnum, d->frags, d->deaths, d->totaldamage*100.0/max(d->totalshots, 1), d->teamkills);
     }
     COMMAND(stats, "s");
     
