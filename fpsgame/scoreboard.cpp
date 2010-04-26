@@ -216,19 +216,23 @@ namespace game
                 g.pushlist(); // horizontal
             }
 
-            if(michaelmods && showfrags)
+            bool b = michaelmods && showfrags;
+            if(!cmode || !cmode->hidefrags() || b)
             {
                 g.pushlist();
-                g.strut(3);
+                g.strut(b ? 3 : 7);
                 g.text("K", fgcolor);
                 loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->frags));
                 g.poplist();
                 
-                g.pushlist();
-                g.strut(5);
-                g.text("D", fgcolor);
-                loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->deaths));
-                g.poplist();
+                if(b)
+                {
+                    g.pushlist();
+                    g.strut(5);
+                    g.text("D", fgcolor);
+                    loopscoregroup(o, g.textf("%d", 0xFFFFDD, NULL, o->deaths));
+                    g.poplist();
+                }
             }
 
             if(multiplayer(false) || demoplayback)
