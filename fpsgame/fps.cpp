@@ -431,7 +431,7 @@ namespace game
 		ai::killed(d, actor);
     }
 
-    VARP(showtimehud, 0, 0, 1);
+    VARP(showtimehud, 0, 1, 1);
     void timeupdate(int timeremain)
     {
         minremain = timeremain;
@@ -1099,7 +1099,7 @@ namespace game
         execfile("auth.cfg", false);
     }
     
-    VARP(showpinghud, 0, 0, 1);
+    VARP(showpinghud, 0, 1, 1);
     void renderpinghud(int w, int h, int fonth)
     {
         if(michaelmods && showpinghud && !m_sp && hudplayer()->state != CS_EDITING) {
@@ -1139,7 +1139,7 @@ namespace game
         }
     }
     
-    VARP(showscorehud, 0, 0, 1);
+    VARP(showscorehud, 0, 1, 1);
     void renderscorehud(int w, int h, int fonth)
     {
         if(michaelmods && showscorehud && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
@@ -1161,9 +1161,10 @@ namespace game
         if(michaelmods && showhighlights && !m_sp && !m_edit && hudplayer()->state != CS_EDITING)
         {
             int k = 0, z = 0;
+            int x = 1800*w/h*45/40;
             loopv(players) {
                 if(players[i]->state != CS_SPECTATOR && !isteam(players[i]->team, player1->team) && (players[i]->highlight || highlightall)) {
-                    int rb = w*3-9*fonth-6*fonth*z;
+                    int rb = x-z*6*fonth;
                     const char *s = colorname(players[i]);
                     int sw, sh;
                     text_bounds(s, sw, sh);
@@ -1176,7 +1177,71 @@ namespace game
                 }
             }
         }
+    }
 
+    void renderthomashud(int w, int h, int fonth, int curfps)
+    {
+        if(michaelmods) {
+            int pj = 0, c = 0;
+            loopv(players)
+                if(players[i]->plag != 0 && players[i]->state != CS_SPECTATOR) {
+                    pj += players[i]->plag;
+                    c ++;
+                }
+            char a[32] = "", b[32], d[256], e[256] = "", f[256];
+            if(showping)
+            {
+                if(showpj)
+                    sprintf(a, "ping: %d,%d ", player1->ping, c ? pj / c : 0);
+                else
+                    sprintf(a, "ping: %d ", player1->ping);
+            }
+            else if(showpj)
+                sprintf(a, "pj: %d ", c ? pj / c : 0);
+
+            {
+                int timeleft = abs(maptimeleft);
+                int t = intermission ? 0 : (timeleft + 1000 - lastmillis) / 1000;
+                int m = t / 60, s = t % 60;
+                if(!(!m && s && s < 30 && lastmillis % 1000 >= 500))
+                {
+                    const char *color = m ? (s ? "" : "\f1") : "\f3";
+                    if(maptimeleft > -1)
+                        sprintf(b, "\fs%s%d:%-2.2d\fr", color, m, s);
+                    else
+                        sprintf(b, "\fs%s<%d min\fr", color, m+1);
+                }
+                else
+                    sprintf(b, "   ");
+            }
+            {
+                vector<int> v;
+                int n = getscores(v);
+                if(v.length())
+                {
+                    sprintf(e, " score: ");
+                    int f = 0;
+                    loopv(v)
+                        f += sprintf(e+8+f, "%s\fs%s%d\fr", f ? "-" : "", n == i ? "\f1" : "", v[i]);
+                }
+            }
+            fpsent *p = hudplayer();
+            int rank = 0;
+            {
+                vector<fpsent *> bestplayers;
+                getsortedplayers(bestplayers);
+                rank = bestplayers.find(p)+1;
+            }
+
+            int mw, mh;
+            sprintf(d, "frags: %d deaths: %d acc: %d%% rank: %d fps: %d", p->frags, p->deaths, p->totaldamage*100/max(p->totalshots, 1), rank, curfps);
+            text_bounds(d, mw, mh);
+            draw_text(d, w*3-mw-fonth, h*3-fonth*3/2);
+
+            sprintf(f, "cn: %d %stime: %s%s", p->clientnum, a, b, e);
+            text_bounds(f, mw, mh);
+            draw_text(f, w*3-mw-fonth, h*3-fonth*5/2);
+        }
     }
 }
 

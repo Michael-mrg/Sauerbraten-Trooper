@@ -1840,6 +1840,7 @@ VARP(showfpsrange, 0, 0, 1);
 VAR(showeditstats, 0, 0, 1);
 VAR(statrate, 1, 200, 1000);
 
+VARP(showthomashud, 0, 0, 1);
 void gl_drawhud(int w, int h)
 {
     if(editmode && !hidehud && !mainmenu)
@@ -1916,12 +1917,17 @@ void gl_drawhud(int w, int h)
             int nextfps[3];
             getfps(nextfps[0], nextfps[1], nextfps[2]);
             loopi(3) if(prevfps[i]==curfps[i]) curfps[i] = nextfps[i];
-            if(showfpsrange) draw_textf("fps %d+%d-%d", w*3-7*FONTH, h*3-FONTH*3/2, curfps[0], curfps[1], curfps[2]);
-            else draw_textf("fps %d", w*3-5*FONTH, h*3-100, curfps[0]);
+            if(showthomashud)
+                game::renderthomashud(w, h, FONTH, curfps[0]);
+            else
+            {
+                if(showfpsrange) draw_textf("fps %d+%d-%d", w*3-7*FONTH, h*3-FONTH*3/2, curfps[0], curfps[1], curfps[2]);
+                else draw_textf("fps %d", w*3-5*FONTH, h*3-100, curfps[0]);
 
-            game::renderpinghud(w, h, FONTH);
-            game::rendertimehud(w, h, FONTH);
-            game::renderscorehud(w, h, FONTH);
+                game::renderpinghud(w, h, FONTH);
+                game::rendertimehud(w, h, FONTH);
+                game::renderscorehud(w, h, FONTH);
+            }
             game::renderhighlighthud(w, h, FONTH);
             
             if(editmode || showeditstats)

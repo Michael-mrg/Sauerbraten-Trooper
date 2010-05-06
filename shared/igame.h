@@ -90,6 +90,7 @@ namespace game
     extern void rendertimehud(int w, int h, int fonth);
     extern void renderscorehud(int w, int h, int fonth);
     extern void renderhighlighthud(int w, int h, int fonth);
+    extern void renderthomashud(int w, int h, int fonth, int curfps);
 } 
  
 namespace server

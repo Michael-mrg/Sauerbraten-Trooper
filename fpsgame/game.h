@@ -731,6 +731,7 @@ namespace game
     // scoreboard
     extern void showscores(bool on);
     extern void getbestplayers(vector<fpsent *> &best);
+    extern void getsortedplayers(vector<fpsent *> &best);
     extern void getbestteams(vector<const char *> &best);
     extern int getscores(vector<int> &v);
 

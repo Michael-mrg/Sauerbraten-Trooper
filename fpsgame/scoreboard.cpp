@@ -35,13 +35,18 @@ namespace game
 
     void getbestplayers(vector<fpsent *> &best)
     {
+        getsortedplayers(best);
+        while(best.length()>1 && best.last()->frags < best[0]->frags) best.drop();
+    }
+
+    void getsortedplayers(vector<fpsent *> &best)
+    {
         loopv(players)
         {
             fpsent *o = players[i];
             if(o->state!=CS_SPECTATOR) best.add(o);
         }
         best.sort(playersort);
-        while(best.length()>1 && best.last()->frags < best[0]->frags) best.drop();
     }
 
     void sortteams(vector<teamscore> &teamscores)
